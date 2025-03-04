@@ -1,0 +1,159 @@
+﻿@model RetailerWholesalerSystem.ViewModels.ProductSalesViewModel
+@{
+    ViewData["Title"] = "Product Sales Report";
+}
+
+<div class="container-fluid">
+    <h2>@ViewData["Title"]</h2>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    Product Information
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">@Model.ProductName</h5>
+                    <p class="card-text">SKU: @Model.ProductSKU</p>
+                    <p class="card-text">Category: @Model.Category</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    Sales Summary
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Total Units Sold:</strong> @Model.TotalUnitsSold</p>
+                            <p><strong>Total Revenue:</strong> @Model.TotalRevenue.ToString("C")</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Average Price:</strong> @Model.AveragePrice.ToString("C")</p>
+                            <p><strong>Profit Margin:</strong> @Model.ProfitMargin.ToString("P2")</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer text-muted">
+                    Time Period: @Model.TimePeriod
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    Monthly Sales Trend
+                </div>
+                <div class="card-body">
+                    <canvas id="monthlySalesChart" width="100%" height="40"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    Wholesaler Price Comparison
+                </div>
+                <div class="card-body">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Wholesaler</th>
+                                <th>Price</th>
+                                <th>Difference</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var wholesaler in Model.WholesalerComparisons)
+                            {
+                                <tr>
+                                    <td>@wholesaler.WholesalerName</td>
+                                    <td>@wholesaler.Price.ToString("C")</td>
+                                    <td class="@(wholesaler.PriceDifference < 0 ? "text-danger" : "text-success")">
+                                        @wholesaler.PriceDifference.ToString("P2")
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Monthly Sales Chart
+            var ctx = document.getElementById('monthlySalesChart').getContext('2d');
+            var months = @Json.Serialize(Model.SalesByMonth.Select(m => m.Month).ToArray());
+            var unitsSold = @Json.Serialize(Model.SalesByMonth.Select(m => m.UnitsSold).ToArray());
+            var revenue = @Json.Serialize(Model.SalesByMonth.Select(m => m.Revenue).ToArray());
+
+            var monthlySalesChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: months,
+                    datasets: [
+                        {
+                            label: 'Units Sold',
+                            data: unitsSold,
+                            backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 1,
+                            yAxisID: 'y-axis-units'
+                        },
+                        {
+                            label: 'Revenue',
+                            data: revenue,
+                            backgroundColor: 'rgba(75, 192, 192, 0.5)',
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            borderWidth: 1,
+                            type: 'line',
+                            yAxisID: 'y-axis-revenue'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        yAxes: [
+                            {
+                                id: 'y-axis-units',
+                                type: 'linear',
+                                position: 'left',
+                                scaleLabel: {
+                                    display: true,
+                                    labelString: 'Units Sold'
+                                }
+                            },
+                            {
+                                id: 'y-axis-revenue',
+                                type: 'linear',
+                                position: 'right',
+                                scaleLabel: {
+                                    display: true,
+                                    labelString: 'Revenue ($)'
+                                },
+                                ticks: {
+                                    callback: function(value) {
+                                        return '$' + value;
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                }
+            });
+        });
+    </script>
+}

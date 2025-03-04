@@ -1,0 +1,83 @@
+﻿@model IEnumerable<RetailerWholesalerSystem.Models.Product>
+@{
+    ViewData["Title"] = "Products";
+    var isWholesaler = User.IsInRole("Wholesaler");
+}
+
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>Products</h2>
+        </div>
+        <div class="col-md-4 text-right">
+            @if (isWholesaler)
+            {
+                <a asp-action="Create" class="btn btn-primary">Add New Product</a>
+            }
+        </div>
+    </div>
+
+    @if (Model.Any())
+    {
+        <div class="row">
+            @foreach (var product in Model)
+            {
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100">
+                        @if (!string.IsNullOrEmpty(product.ImageURL))
+                        {
+                            <img src="@product.ImageURL" class="card-img-top" alt="@product.Name" style="height: 200px; object-fit: cover;">
+                        }
+                        else
+                        {
+                            <div class="bg-light text-center py-5">
+                                <i class="fa fa-image fa-4x text-muted"></i>
+                            </div>
+                        }
+                        <div class="card-body">
+                            <h5 class="card-title">@product.Name</h5>
+                            <p class="card-text">@product.Description</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="badge badge-primary">@product.Category</span>
+                                <span class="font-weight-bold text-success">@product.DefaultPrice.ToString("C")</span>
+                            </div>
+
+                            @if (isWholesaler && ViewBag.CurrentUserProducts != null && ViewBag.CurrentUserProducts.Contains(product.ProductID))
+                            {
+                                <p class="card-text mt-2">
+                                    <small class="text-muted">Your inventory: @(ViewBag.ProductStocks != null ? ViewBag.ProductStocks[product.ProductID] : 0)</small>
+                                </p>
+                            }
+                        </div>
+                        <div class="card-footer bg-white border-top-0">
+                            <div class="btn-group btn-block">
+                                <a asp-action="Details" asp-route-id="@product.ProductID" class="btn btn-outline-primary">Details</a>
+                                @if (isWholesaler && ViewBag.CurrentUserProducts != null && ViewBag.CurrentUserProducts.Contains(product.ProductID))
+                                {
+                                    <a asp-action="Edit" asp-route-id="@product.ProductID" class="btn btn-outline-secondary">Edit</a>
+                                }
+                                @if (!isWholesaler)
+                                {
+                                    <a asp-controller="Transaction" asp-action="AddToCart" asp-route-id="@product.ProductID" class="btn btn-success">Add to Cart</a>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info">
+            @if (isWholesaler)
+            {
+                <p>You haven't added any products yet. <a asp-action="Create">Add your first product</a> to get started.</p>
+            }
+            else
+            {
+                <p>No products are available at this time. Please check back later.</p>
+            }
+        </div>
+    }
+</div>

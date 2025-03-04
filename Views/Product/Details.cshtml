@@ -1,0 +1,140 @@
+﻿@model RetailerWholesalerSystem.Models.Product
+@{
+    ViewData["Title"] = "Product Details";
+    var isWholesaler = User.IsInRole("Wholesaler");
+    var isRetailer = User.IsInRole("Retailer");
+    var canEdit = isWholesaler && ViewBag.CurrentUserProducts != null && ViewBag.CurrentUserProducts.Contains(Model.ProductID);
+}
+
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Home</a></li>
+                    <li class="breadcrumb-item"><a asp-controller="Product" asp-action="Index">Products</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">@Model.Name</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-5">
+            @if (!string.IsNullOrEmpty(Model.ImageURL))
+            {
+                <img src="@Model.ImageURL" class="img-fluid rounded" alt="@Model.Name">
+            }
+            else
+            {
+                <div class="bg-light text-center py-5 rounded">
+                    <i class="fa fa-image fa-5x text-muted"></i>
+                    <p class="mt-3">No image available</p>
+                </div>
+            }
+        </div>
+        <div class="col-md-7">
+            <h2>@Model.Name</h2>
+            <p class="lead">@Model.Description</p>
+
+            <div class="row mb-4">
+                <div class="col-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Default Price</h5>
+                            <p class="card-text text-success h3">@Model.DefaultPrice.ToString("C")</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Category</h5>
+                            <p class="card-text h3">@Model.Category</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @if (ViewBag.WholesalerProducts != null && ViewBag.WholesalerProducts.Count > 0)
+            {
+                <h4 class="mt-4">Available from Wholesalers</h4>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Wholesaler</th>
+                                <th>Price</th>
+                                <th>Stock</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var wp in ViewBag.WholesalerProducts)
+                            {
+                                <tr>
+                                    <td>@wp.WholesalerName</td>
+                                    <td>@wp.Price.ToString("C")</td>
+                                    <td>@wp.StockQuantity</td>
+                                    <td>
+                                        @if (isRetailer && wp.StockQuantity > 0)
+                                        {
+                                            <a asp-controller="Transaction" asp-action="AddToCart"
+                                               asp-route-id="@Model.ProductID"
+                                               asp-route-wholesalerId="@wp.WholesalerId"
+                                               class="btn btn-sm btn-success">Add to Cart</a>
+                                        }
+                                        else if (wp.StockQuantity <= 0)
+                                        {
+                                            <span class="badge badge-secondary">Out of Stock</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+
+            <div class="mt-4">
+                @if (canEdit)
+                {
+                    <a asp-action="Edit" asp-route-id="@Model.ProductID" class="btn btn-outline-primary mr-2">Edit Product</a>
+                    <button type="button" class="btn btn-outline-danger" data-toggle="modal" data-target="#deleteModal">
+                        Delete Product
+                    </button>
+                }
+                @if (isWholesaler && !(ViewBag.CurrentUserProducts != null && ViewBag.CurrentUserProducts.Contains(Model.ProductID)))
+                {
+                    <a asp-action="AddToInventory" asp-route-id="@Model.ProductID" class="btn btn-primary">Add to My Inventory</a>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (canEdit)
+{
+    <div class="modal fade" id="deleteModal" tabindex="-1" role="dialog" aria-labelledby="deleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteModalLabel">Confirm Delete</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete the product "@Model.Name"?</p>
+                    <p class="text-danger">This action cannot be undone and will remove this product from your inventory.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <form asp-action="Delete" asp-route-id="@Model.ProductID" method="post">
+                        <button type="submit" class="btn btn-danger">Delete</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+}

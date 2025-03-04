@@ -1,0 +1,175 @@
+﻿@model RetailerWholesalerSystem.ViewModels.CustomerSalesViewModel
+@{
+    ViewData["Title"] = "Customer Sales Report";
+}
+
+<div class="container-fluid">
+    <h2>@ViewData["Title"]</h2>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    Customer Information
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">@Model.CustomerName</h5>
+                    <p class="card-text">Email: @Model.Email</p>
+                    <p class="card-text">Registered: @Model.RegistrationDate.ToShortDateString()</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    Purchase Summary
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Total Orders:</strong> @Model.TotalOrders</p>
+                            <p><strong>Total Spent:</strong> @Model.TotalSpent.ToString("C")</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Average Order Value:</strong> @Model.AverageOrderValue.ToString("C")</p>
+                            <p><strong>Last Purchase:</strong> @Model.LastPurchaseDate.ToShortDateString()</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    Order History
+                </div>
+                <div class="card-body">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Order #</th>
+                                <th>Date</th>
+                                <th>Items</th>
+                                <th>Total</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var order in Model.OrderHistory)
+                            {
+                                <tr>
+                                    <td>@order.TransactionId</td>
+                                    <td>@order.OrderDate.ToShortDateString()</td>
+                                    <td>@order.ItemCount items</td>
+                                    <td>@order.OrderTotal.ToString("C")</td>
+                                    <td>
+                                        <span class="badge @(order.Status == "Completed" ? "badge-success" : order.Status == "Processing" ? "badge-warning" : "badge-secondary")">
+                                            @order.Status
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <a href="@Url.Action("Details", "Transaction", new { id = order.TransactionId })" class="btn btn-sm btn-info">View</a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    Product Preferences
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <canvas id="productPreferencesChart" width="100%" height="50"></canvas>
+                        </div>
+                        <div class="col-md-4">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Product</th>
+                                        <th>Quantity</th>
+                                        <th>Amount</th>
+                                        <th>%</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var product in Model.ProductPreferences)
+                                    {
+                                        <tr>
+                                            <td>@product.ProductName</td>
+                                            <td>@product.QuantityPurchased</td>
+                                            <td>@product.TotalSpent.ToString("C")</td>
+                                            <td>@product.PercentageOfTotalSpend.ToString("P2")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Product Preferences Chart
+            var ctx = document.getElementById('productPreferencesChart').getContext('2d');
+            var productNames = @Json.Serialize(Model.ProductPreferences.Select(p => p.ProductName).ToArray());
+            var totalSpent = @Json.Serialize(Model.ProductPreferences.Select(p => (double)p.TotalSpent).ToArray());
+            var percentages = @Json.Serialize(Model.ProductPreferences.Select(p => (double)p.PercentageOfTotalSpend).ToArray());
+
+            var backgroundColors = [
+                'rgba(255, 99, 132, 0.6)',
+                'rgba(54, 162, 235, 0.6)',
+                'rgba(255, 206, 86, 0.6)',
+                'rgba(75, 192, 192, 0.6)',
+                'rgba(153, 102, 255, 0.6)',
+                'rgba(255, 159, 64, 0.6)',
+                'rgba(199, 199, 199, 0.6)'
+            ];
+
+            var productPreferencesChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: productNames,
+                    datasets: [{
+                        data: percentages.map(p => p * 100),
+                        backgroundColor: backgroundColors.slice(0, productNames.length),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    legend: {
+                        position: 'right'
+                    },
+                    tooltips: {
+                        callbacks: {
+                            label: function(tooltipItem, data) {
+                                var label = data.labels[tooltipItem.index];
+                                var value = data.datasets[0].data[tooltipItem.index];
+                                var amount = totalSpent[tooltipItem.index];
+                                return label + ': ' + value.toFixed(2) + '% ($' + amount.toFixed(2) + ')';
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+}

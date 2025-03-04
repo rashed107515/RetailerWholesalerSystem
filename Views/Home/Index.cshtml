@@ -1,0 +1,64 @@
+﻿@{
+    ViewData["Title"] = "Home";
+}
+
+<div class="jumbotron">
+    <h1 class="display-4">Retailer-Wholesaler Cash Book System</h1>
+    <p class="lead">A comprehensive platform for managing transactions between retailers and wholesalers.</p>
+    <hr class="my-4">
+    <p>Streamline your business operations with our easy-to-use cash book system designed specifically for retailer-wholesaler interactions.</p>
+
+    @if (!User.Identity.IsAuthenticated)
+    {
+        <div class="mt-4">
+            <a class="btn btn-primary btn-lg mr-2" asp-area="Identity" asp-page="/Account/Register">Register Now</a>
+            <a class="btn btn-outline-primary btn-lg" asp-area="Identity" asp-page="/Account/Login">Login</a>
+        </div>
+    }
+    else
+    {
+        <a class="btn btn-primary btn-lg" asp-controller="Dashboard" asp-action="Index">Go to Dashboard</a>
+    }
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">For Retailers</h5>
+                <p class="card-text">Compare products from different wholesalers, track your purchases, and manage your cash flow.</p>
+                <ul>
+                    <li>Product comparison tool</li>
+                    <li>Transaction history</li>
+                    <li>Payment management</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">For Wholesalers</h5>
+                <p class="card-text">Manage your products, track sales, and monitor customer transactions all in one place.</p>
+                <ul>
+                    <li>Product management</li>
+                    <li>Customer tracking</li>
+                    <li>Sales reporting</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Cash Book Management</h5>
+                <p class="card-text">Keep track of all financial transactions with our intuitive cash book system.</p>
+                <ul>
+                    <li>Real-time balance updates</li>
+                    <li>Financial reports</li>
+                    <li>Payment history</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>

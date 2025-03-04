@@ -1,0 +1,114 @@
+﻿@model RetailerWholesalerSystem.ViewModels.DashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard";
+    var isRetailer = User.IsInRole("Retailer");
+}
+
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h2>Welcome to your Dashboard</h2>
+            <p class="text-muted">Here's an overview of your recent activity</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-body text-center">
+                    <h5 class="card-title">@(isRetailer ? "Total Spent" : "Total Earned")</h5>
+                    <h2 class="text-primary">@(isRetailer ? Model.TotalSpent.ToString("C") : Model.TotalEarned.ToString("C"))</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Outstanding Amount</h5>
+                    <h2 class="text-warning">@Model.OutstandingAmount.ToString("C")</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Pending Transactions</h5>
+                    <h2 class="text-info">@Model.PendingTransactions</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Monthly @(isRetailer ? "Spending" : "Earnings")</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="monthlySummaryChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Recent Transactions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        @foreach (var transaction in Model.RecentTransactions)
+                        {
+                            <a href="@Url.Action("Details", "Transaction", new { id = transaction.TransactionID })" class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">@transaction.TotalAmount.ToString("C")</h6>
+                                    <small>@transaction.Date.ToString("MMM dd")</small>
+                                </div>
+                                <p class="mb-1">
+                                    @(isRetailer ? $"To: {transaction.Wholesaler.BusinessName}" : $"From: {transaction.Retailer.BusinessName}")
+                                </p>
+                                <small class="text-@(transaction.Status == RetailerWholesalerSystem.Models.TransactionStatus.Paid ? "success" : (transaction.Status == RetailerWholesalerSystem.Models.TransactionStatus.Pending ? "warning" : "danger"))">
+                                    @transaction.Status.ToString()
+                                </small>
+                            </a>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Setup chart data
+        var ctx = document.getElementById('monthlySummaryChart').getContext('2d');
+        var monthlySummaryChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [@Html.Raw(string.Join(",", Model.MonthlySummary.Keys.Select(k => $"'{k}'")))],
+                datasets: [{
+                    label: '@(isRetailer ? "Monthly Spending" : "Monthly Earnings")',
+                    data: [@string.Join(",", Model.MonthlySummary.Values)],
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 2,
+                    pointBackgroundColor: 'rgba(54, 162, 235, 1)',
+                    tension: 0.4
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+}
