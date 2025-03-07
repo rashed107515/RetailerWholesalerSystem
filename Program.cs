@@ -20,9 +20,17 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container
 // Configure database
+// Add this to your existing Program.cs where you configure services
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-// Configure Identity
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        sqlServerOptionsAction: sqlOptions =>
+        {
+            sqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 5,
+                maxRetryDelay: TimeSpan.FromSeconds(30),
+                errorNumbersToAdd: null);
+        }));// Configure Identity
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options => {
     // Password settings
     options.Password.RequireDigit = true;
@@ -96,6 +104,7 @@ app.MapControllerRoute(
 app.MapRazorPages();
 
 // Seed the database if needed
+// Add this inside the existing "using" block in your Program.cs where you're initializing the database
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -105,16 +114,41 @@ using (var scope = app.Services.CreateScope())
         var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
         var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
 
-        // You can call your database seeding method here
-        // await SeedDatabase.Initialize(context, userManager, roleManager);
+        // Ensure the database is created
+        context.Database.EnsureCreated();
+
+        // Create roles if they don't exist
+        string[] roleNames = { "Admin", "Retailer", "Wholesaler" };
+
+        foreach (var roleName in roleNames)
+        {
+            // Check if the role exists
+            var roleExists = await roleManager.RoleExistsAsync(roleName);
+            if (!roleExists)
+            {
+                // Create the role
+                var result = await roleManager.CreateAsync(new IdentityRole(roleName));
+                if (result.Succeeded)
+                {
+                    Console.WriteLine($"Created role: {roleName}");
+                }
+                else
+                {
+                    foreach (var error in result.Errors)
+                    {
+                        Console.WriteLine($"Error creating role {roleName}: {error.Description}");
+                    }
+                }
+            }
+        }
     }
     catch (Exception ex)
     {
         var logger = services.GetRequiredService<ILogger<Program>>();
         logger.LogError(ex, "An error occurred while seeding the database.");
+        Console.WriteLine($"Error seeding database: {ex.Message}");
     }
 }
-
 app.Run();
 
 // Interface for email sending (should be moved to a separate file)

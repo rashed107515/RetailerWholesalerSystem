@@ -1,0 +1,60 @@
+﻿@model IEnumerable<RetailerWholesalerSystem.Models.WholesalerProduct>
+@{
+    ViewData["Title"] = "My Inventory";
+}
+
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>My Inventory</h2>
+        </div>
+        <div class="col-md-4 text-right">
+            <a asp-controller="Product" asp-action="Browse" class="btn btn-primary">Add Products to Inventory</a>
+        </div>
+    </div>
+
+    @if (Model.Any())
+    {
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Description</th>
+                        <th>Category</th>
+                        <th>Your Price</th>
+                        <th>Available Quantity</th>
+                        <th>Min. Order</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>@item.Product.Name</td>
+                            <td>@item.Product.Description</td>
+                            <td>@item.Product.Category</td>
+                            <td>@item.Price.ToString("C")</td>
+                            <td>@item.AvailableQuantity</td>
+                            <td>@item.MinimumOrderQuantity</td>
+                            <td>
+                                <div class="btn-group">
+                                    <a asp-action="EditWholesalerProduct" asp-route-id="@item.WholesalerProductID" class="btn btn-sm btn-warning">Edit</a>
+                                    <a asp-action="DeleteWholesalerProduct" asp-route-id="@item.WholesalerProductID" class="btn btn-sm btn-danger">Delete</a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info">
+            <p>You haven't added any products to your inventory yet.</p>
+            <p>Click the "Add Products to Inventory" button to start adding products from our catalog.</p>
+        </div>
+    }
+</div>

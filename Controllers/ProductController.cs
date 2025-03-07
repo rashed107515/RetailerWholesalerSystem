@@ -229,6 +229,149 @@ namespace RetailerWholesalerSystem.Controllers
             return View(wholesalerProduct);
         }
 
+        // GET: Products/DeleteWholesalerProduct/5
+        [Authorize]
+        //public ActionResult DeleteWholesalerProduct(int? id)
+        //{
+        //    string userId = _userManager.GetUserId(User);
+        //    var user = _db.Users.Find(userId);
+
+        //    if (user.UserType != UserType.Wholesaler)
+        //    {
+        //        return Unauthorized();
+        //    }
+
+        //    if (id == null)
+        //    {
+        //        return BadRequest();
+        //    }
+
+        //    WholesalerProduct wholesalerProduct = _db.WholesalerProducts
+        //        .Include(wp => wp.Product)
+        //        .FirstOrDefault(wp => wp.WholesalerProductID == id && wp.WholesalerID == userId);
+
+        //    if (wholesalerProduct == null)
+        //    {
+        //        return NotFound();
+        //    }
+
+        //    return View(wholesalerProduct);
+        //}
+
+        // POST: Products/DeleteWholesalerProduct/5
+        [HttpPost, ActionName("DeleteWholesalerProduct")]
+        [ValidateAntiForgeryToken]
+        [Authorize]
+        //public ActionResult DeleteWholesalerProductConfirmed(int id)
+        //{
+        //    string userId = _userManager.GetUserId(User);
+        //    var user = _db.Users.Find(userId);
+
+        //    if (user.UserType != UserType.Wholesaler)
+        //    {
+        //        return Unauthorized();
+        //    }
+
+        //    WholesalerProduct wholesalerProduct = _db.WholesalerProducts
+        //        .FirstOrDefault(wp => wp.WholesalerProductID == id && wp.WholesalerID == userId);
+
+        //    if (wholesalerProduct == null)
+        //    {
+        //        return NotFound();
+        //    }
+
+        //    _db.WholesalerProducts.Remove(wholesalerProduct);
+        //    _db.SaveChanges();
+        //    return RedirectToAction("Index");
+        //}
+        // Add this method to your ProductController.cs file
+
+        // GET: Products/Browse
+        [Authorize]
+        //public ActionResult Browse()
+        //{
+        //    string userId = _userManager.GetUserId(User);
+        //    var user = _db.Users.Find(userId);
+
+        //    if (user.UserType != UserType.Wholesaler)
+        //    {
+        //        return RedirectToAction("Index");
+        //    }
+
+        //    // Get all products
+        //    var products = _db.Products.ToList();
+
+        //    // Get the current user's products for comparison
+        //    var currentUserProducts = _db.WholesalerProducts
+        //        .Where(wp => wp.WholesalerID == userId)
+        //        .Select(wp => wp.ProductID)
+        //        .ToHashSet();
+
+        //    ViewBag.CurrentUserProducts = currentUserProducts;
+
+        //    return View(products);
+        //}
+
+        public IActionResult Browse()
+        {
+            return Content("Browse method works!");
+        }
+        // Add this method to your ProductController.cs file
+        // GET: Products/DeleteWholesalerProduct/5
+        [Authorize]
+        public ActionResult DeleteWholesalerProduct(int? id)
+        {
+            string userId = _userManager.GetUserId(User);
+            var user = _db.Users.Find(userId);
+
+            if (user.UserType != UserType.Wholesaler)
+            {
+                return Unauthorized();
+            }
+
+            if (id == null)
+            {
+                return BadRequest();
+            }
+
+            WholesalerProduct wholesalerProduct = _db.WholesalerProducts
+                .Include(wp => wp.Product)
+                .FirstOrDefault(wp => wp.WholesalerProductID == id && wp.WholesalerID == userId);
+
+            if (wholesalerProduct == null)
+            {
+                return NotFound();
+            }
+
+            return View(wholesalerProduct);
+        }
+
+        // POST: Products/DeleteWholesalerProduct/5
+        [HttpPost, ActionName("DeleteWholesalerProduct")]
+        [ValidateAntiForgeryToken]
+        [Authorize]
+        public ActionResult DeleteWholesalerProductConfirmed(int WholesalerProductID)
+        {
+            string userId = _userManager.GetUserId(User);
+            var user = _db.Users.Find(userId);
+
+            if (user.UserType != UserType.Wholesaler)
+            {
+                return Unauthorized();
+            }
+
+            WholesalerProduct wholesalerProduct = _db.WholesalerProducts
+                .FirstOrDefault(wp => wp.WholesalerProductID == WholesalerProductID && wp.WholesalerID == userId);
+
+            if (wholesalerProduct == null)
+            {
+                return NotFound();
+            }
+
+            _db.WholesalerProducts.Remove(wholesalerProduct);
+            _db.SaveChanges();
+            return RedirectToAction("Index");
+        }
         protected override void Dispose(bool disposing)
         {
             if (disposing)

@@ -11,8 +11,8 @@
     @if (!User.Identity.IsAuthenticated)
     {
         <div class="mt-4">
-            <a class="btn btn-primary btn-lg mr-2" asp-area="Identity" asp-page="/Account/Register">Register Now</a>
-            <a class="btn btn-outline-primary btn-lg" asp-area="Identity" asp-page="/Account/Login">Login</a>
+            <a class="btn btn-primary btn-lg mr-2" asp-controller="Account" asp-action="Register">Register Now</a>
+            <a class="btn btn-primary btn-lg mr-2" asp-controller="Account" asp-action="Login">Login</a>
         </div>
     }
     else

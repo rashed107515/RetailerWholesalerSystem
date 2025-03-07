@@ -8,6 +8,7 @@ using RetailerWholesalerSystem.Models;
 using RetailerWholesalerSystem.ViewModels;
 using Microsoft.Extensions.Logging;
 using RetailerWholesalerSystem;
+
 namespace RetailerWholesalerSystem.Controllers
 {
     [Authorize]
@@ -47,10 +48,15 @@ namespace RetailerWholesalerSystem.Controllers
                 return View(model);
             }
 
+            // Added debugging
+            _logger.LogInformation($"Login attempt for {model.Email}");
+            Console.WriteLine($"Login attempt for {model.Email}");
+
             var result = await _signInManager.PasswordSignInAsync(model.Email, model.Password, model.RememberMe, lockoutOnFailure: false);
             if (result.Succeeded)
             {
                 _logger.LogInformation("User logged in.");
+                Console.WriteLine($"Login successful for {model.Email}");
                 return RedirectToLocal(returnUrl);
             }
             if (result.RequiresTwoFactor)
@@ -60,10 +66,15 @@ namespace RetailerWholesalerSystem.Controllers
             if (result.IsLockedOut)
             {
                 _logger.LogWarning("User account locked out.");
+                Console.WriteLine($"Account locked out: {model.Email}");
                 return RedirectToAction(nameof(Lockout));
             }
             else
             {
+                // Added debugging
+                _logger.LogWarning($"Invalid login attempt for {model.Email}");
+                Console.WriteLine($"Login failed for {model.Email}");
+
                 ModelState.AddModelError(string.Empty, "Invalid login attempt.");
                 return View(model);
             }
@@ -109,8 +120,17 @@ namespace RetailerWholesalerSystem.Controllers
         public async Task<IActionResult> Register(RegisterViewModel model, string returnUrl = null)
         {
             ViewData["ReturnUrl"] = returnUrl;
+
+            // Added debugging
+            _logger.LogInformation("Register action hit");
+            Console.WriteLine($"Register action hit for {model.Email}, role: {model.Role}");
+            Console.WriteLine($"BusinessName: {model.BusinessName}, Address: {model.Address}, ContactInfo: {model.ContactInfo}");
+
             if (ModelState.IsValid)
             {
+                _logger.LogInformation("Model state is valid");
+                Console.WriteLine("Model state is valid");
+
                 // Determine UserType based on the Role selection
                 UserType userType;
 
@@ -127,6 +147,8 @@ namespace RetailerWholesalerSystem.Controllers
                 {
                     // Default or handle invalid selection
                     ModelState.AddModelError(string.Empty, "Invalid role selected.");
+                    _logger.LogWarning("Invalid role selected: {Role}", model.Role);
+                    Console.WriteLine($"Invalid role selected: {model.Role}");
                     return View(model);
                 }
 
@@ -134,30 +156,67 @@ namespace RetailerWholesalerSystem.Controllers
                 {
                     UserName = model.Email,
                     Email = model.Email,
+                    PhoneNumber = model.PhoneNumber,
                     BusinessName = model.BusinessName,
                     Address = model.Address,
                     ContactInfo = model.ContactInfo,
                     UserType = userType // Using the enum value we determined above
                 };
 
+                Console.WriteLine($"Created user object with BusinessName: {user.BusinessName}");
+
                 var result = await _userManager.CreateAsync(user, model.Password);
                 if (result.Succeeded)
                 {
                     // Also assign the user to the appropriate role in the Identity system
-                    await _userManager.AddToRoleAsync(user, model.Role);
+                    var roleResult = await _userManager.AddToRoleAsync(user, model.Role);
+
+                    if (!roleResult.Succeeded)
+                    {
+                        Console.WriteLine($"Failed to add user to role {model.Role}");
+                        foreach (var error in roleResult.Errors)
+                        {
+                            Console.WriteLine($"Role Error: {error.Description}");
+                            ModelState.AddModelError(string.Empty, $"Role Error: {error.Description}");
+                        }
+
+                        // Delete the user since we couldn't assign the role
+                        await _userManager.DeleteAsync(user);
+                        return View(model);
+                    }
 
                     _logger.LogInformation("User created a new account with password.");
+                    Console.WriteLine($"User {model.Email} created successfully and added to role {model.Role}");
+
                     await _signInManager.SignInAsync(user, isPersistent: false);
                     return RedirectToLocal(returnUrl);
                 }
+
                 foreach (var error in result.Errors)
                 {
                     ModelState.AddModelError(string.Empty, error.Description);
+                    _logger.LogError("Error creating user: {ErrorDescription}", error.Description);
+                    Console.WriteLine($"Error creating user: {error.Description}");
                 }
             }
+            else
+            {
+                _logger.LogWarning("Model state is invalid");
+                Console.WriteLine("Model state is invalid. Errors:");
+
+                foreach (var modelState in ModelState.Values)
+                {
+                    foreach (var error in modelState.Errors)
+                    {
+                        Console.WriteLine($"- {error.ErrorMessage}");
+                    }
+                }
+            }
+
             // If we got this far, something failed, redisplay form
             return View(model);
         }
+
         // POST: /Account/Logout
         [HttpPost]
         [ValidateAntiForgeryToken]

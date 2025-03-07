@@ -38,6 +38,23 @@
                                     <span asp-validation-for="PhoneNumber" class="text-danger"></span>
                                 </div>
 
+                                <!-- Added the missing fields -->
+                                <div class="form-group">
+                                    <input asp-for="BusinessName" class="form-control form-control-user" placeholder="Business Name">
+                                    <span asp-validation-for="BusinessName" class="text-danger"></span>
+                                </div>
+
+                                <div class="form-group">
+                                    <input asp-for="Address" class="form-control form-control-user" placeholder="Address">
+                                    <span asp-validation-for="Address" class="text-danger"></span>
+                                </div>
+
+                                <div class="form-group">
+                                    <input asp-for="ContactInfo" class="form-control form-control-user" placeholder="Contact Information">
+                                    <span asp-validation-for="ContactInfo" class="text-danger"></span>
+                                </div>
+                                <!-- End of added fields -->
+
                                 <div class="form-group">
                                     <select asp-for="Role" class="form-control" style="border-radius: 10rem; height: 50px;">
                                         <option value="">-- Select Role --</option>
