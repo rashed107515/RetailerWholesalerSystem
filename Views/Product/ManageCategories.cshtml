@@ -1,0 +1,142 @@
+﻿@model IEnumerable<RetailerWholesalerSystem.Models.Product>
+@{
+    ViewData["Title"] = "Manage Categories";
+}
+
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>Manage Product Categories</h2>
+        </div>
+        <div class="col-md-4 text-right">
+            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addCategoryModal">
+                Add New Category
+            </button>
+        </div>
+    </div>
+
+    @if (Model.Any())
+    {
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Category Name</th>
+                        <th>Description</th>
+                        <th>Product Count</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var category in Model)
+                    {
+                        <tr>
+                            <td>@category.ProductID</td>
+                            <td>@category.Name</td>
+                            <td>@category.Description</td>
+                            <td>
+                                <div class="btn-group">
+                                    <button type="button" class="btn btn-sm btn-warning edit-category"
+                                            data-id="@category.ProductID"
+                                            data-name="@category.Name"
+                                            data-description="@category.Description">
+                                        Edit
+                                    </button>
+                                    @* @if (category.ProductCount == 0) *@
+                                    @* { *@
+                                    @*     <a asp-action="DeleteCategory" asp-route-id="@category.ProductID" class="btn btn-sm btn-danger">Delete</a> *@
+                                    @* } *@
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info">
+            <p>No categories have been created yet. Add your first category to get started.</p>
+        </div>
+    }
+</div>
+
+<!-- Add Category Modal -->
+<div class="modal fade" id="addCategoryModal" tabindex="-1" role="dialog" aria-labelledby="addCategoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form asp-action="AddCategory" method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addCategoryModalLabel">Add New Category</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="categoryName" class="control-label">Category Name</label>
+                        <input type="text" id="categoryName" name="Name" class="form-control" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="categoryDescription" class="control-label">Description</label>
+                        <textarea id="categoryDescription" name="Description" class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Category</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Category Modal -->
+<div class="modal fade" id="editCategoryModal" tabindex="-1" role="dialog" aria-labelledby="editCategoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form asp-action="EditCategory" method="post">
+                <input type="hidden" id="editCategoryId" name="CategoryID" />
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editCategoryModalLabel">Edit Category</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="editCategoryName" class="control-label">Category Name</label>
+                        <input type="text" id="editCategoryName" name="Name" class="form-control" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="editCategoryDescription" class="control-label">Description</label>
+                        <textarea id="editCategoryDescription" name="Description" class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            $('.edit-category').click(function() {
+                var id = $(this).data('id');
+                var name = $(this).data('name');
+                var description = $(this).data('description');
+
+                $('#editCategoryId').val(id);
+                $('#editCategoryName').val(name);
+                $('#editCategoryDescription').val(description);
+
+                $('#editCategoryModal').modal('show');
+            });
+        });
+    </script>
+}

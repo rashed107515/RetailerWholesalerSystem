@@ -23,12 +23,33 @@ namespace RetailerWholesalerSystem.Controllers
         }
 
         // GET: Products
+        // GET: Products
+        // GET: Products/Index
+        [Authorize]
         public ActionResult Index()
         {
             string userId = _userManager.GetUserId(User);
             var user = _db.Users.Find(userId);
 
             if (user.UserType == UserType.Wholesaler)
+            {
+                return RedirectToAction("IndexWholesaler");
+            }
+            else if (user.UserType == UserType.Retailer)
+            {
+                return RedirectToAction("IndexRetailer");
+            }
+
+            // Default view for Admin or other roles
+            var products = _db.Products.ToList();
+            return View(products);
+        }
+        public ActionResult IndexWholesaler(bool viewCatalog = false)
+        {
+            string userId = _userManager.GetUserId(User);
+            var user = _db.Users.Find(userId);
+
+            if (user.UserType == UserType.Wholesaler && !viewCatalog)
             {
                 // For wholesalers: show their products
                 var wholesalerProducts = _db.WholesalerProducts
@@ -40,12 +61,28 @@ namespace RetailerWholesalerSystem.Controllers
             }
             else
             {
-                // For retailers: show all products
+                // For everyone: show all products (catalog view)
                 var products = _db.Products.ToList();
+
+                // If the user is a wholesaler, load their current products for the UI
+                if (user.UserType == UserType.Wholesaler)
+                {
+                    ViewBag.CurrentUserProducts = _db.WholesalerProducts
+                        .Where(wp => wp.WholesalerID == userId)
+                        .Select(wp => wp.ProductID)
+                        .ToHashSet();
+
+                    // Also add product quantities for display
+                    var productStocks = _db.WholesalerProducts
+                        .Where(wp => wp.WholesalerID == userId)
+                        .ToDictionary(wp => wp.ProductID, wp => wp.AvailableQuantity);
+
+                    ViewBag.ProductStocks = productStocks;
+                }
+
                 return View(products);
             }
         }
-
         // GET: Products/Details/5
         public ActionResult Details(int? id)
         {
@@ -229,94 +266,82 @@ namespace RetailerWholesalerSystem.Controllers
             return View(wholesalerProduct);
         }
 
-        // GET: Products/DeleteWholesalerProduct/5
         [Authorize]
-        //public ActionResult DeleteWholesalerProduct(int? id)
+        public ActionResult BrowseForWholesaler()
+        {
+            string userId = _userManager.GetUserId(User);
+            var user = _db.Users.Find(userId);
+
+            if (user.UserType != UserType.Wholesaler)
+            {
+                return RedirectToAction("WholesalerProducts");
+            }
+
+            // Get all products
+            var products = _db.Products.ToList();
+
+            // Get the current user's products for comparison
+            var currentUserProducts = _db.WholesalerProducts
+                .Where(wp => wp.WholesalerID == userId)
+                .Select(wp => wp.ProductID)
+                .ToHashSet();
+
+            ViewBag.CurrentUserProducts = currentUserProducts;
+
+            return View(products);
+        }
+
+        // GET: Products/BrowseWholesalerProducts
+        [Authorize]
+        public ActionResult BrowseWholesalerProducts()
+        {
+            string userId = _userManager.GetUserId(User);
+            var user = _db.Users.Find(userId);
+
+            if (user.UserType != UserType.Retailer)
+            {
+                return RedirectToAction("Index");
+            }
+
+            // Get all available wholesaler products with quantity > 0
+            var wholesalerProducts = _db.WholesalerProducts
+                .Include(wp => wp.Product)
+                .Include(wp => wp.Wholesaler)
+                .Where(wp => wp.AvailableQuantity > 0)
+                .ToList();
+
+            return View(wholesalerProducts);
+        }
+
+        // GET: Products/BrowseForRetailer
+        //[Authorize]
+        //public ActionResult BrowseForRetailer()
         //{
         //    string userId = _userManager.GetUserId(User);
         //    var user = _db.Users.Find(userId);
 
-        //    if (user.UserType != UserType.Wholesaler)
-        //    {
-        //        return Unauthorized();
-        //    }
-
-        //    if (id == null)
-        //    {
-        //        return BadRequest();
-        //    }
-
-        //    WholesalerProduct wholesalerProduct = _db.WholesalerProducts
-        //        .Include(wp => wp.Product)
-        //        .FirstOrDefault(wp => wp.WholesalerProductID == id && wp.WholesalerID == userId);
-
-        //    if (wholesalerProduct == null)
-        //    {
-        //        return NotFound();
-        //    }
-
-        //    return View(wholesalerProduct);
-        //}
-
-        // POST: Products/DeleteWholesalerProduct/5
-        [HttpPost, ActionName("DeleteWholesalerProduct")]
-        [ValidateAntiForgeryToken]
-        [Authorize]
-        //public ActionResult DeleteWholesalerProductConfirmed(int id)
-        //{
-        //    string userId = _userManager.GetUserId(User);
-        //    var user = _db.Users.Find(userId);
-
-        //    if (user.UserType != UserType.Wholesaler)
-        //    {
-        //        return Unauthorized();
-        //    }
-
-        //    WholesalerProduct wholesalerProduct = _db.WholesalerProducts
-        //        .FirstOrDefault(wp => wp.WholesalerProductID == id && wp.WholesalerID == userId);
-
-        //    if (wholesalerProduct == null)
-        //    {
-        //        return NotFound();
-        //    }
-
-        //    _db.WholesalerProducts.Remove(wholesalerProduct);
-        //    _db.SaveChanges();
-        //    return RedirectToAction("Index");
-        //}
-        // Add this method to your ProductController.cs file
-
-        // GET: Products/Browse
-        [Authorize]
-        //public ActionResult Browse()
-        //{
-        //    string userId = _userManager.GetUserId(User);
-        //    var user = _db.Users.Find(userId);
-
-        //    if (user.UserType != UserType.Wholesaler)
+        //    if (user.UserType != UserType.Retailer)
         //    {
         //        return RedirectToAction("Index");
         //    }
 
-        //    // Get all products
-        //    var products = _db.Products.ToList();
+        //    // Get all available wholesaler products
+        //    var wholesalerProducts = _db.WholesalerProducts
+        //        .Include(wp => wp.Product)
+        //        .Include(wp => wp.Wholesaler)
+        //        .Where(wp => wp.AvailableQuantity > 0)
+        //        .ToList();
 
         //    // Get the current user's products for comparison
-        //    var currentUserProducts = _db.WholesalerProducts
-        //        .Where(wp => wp.WholesalerID == userId)
-        //        .Select(wp => wp.ProductID)
+        //    var currentUserProducts = _db.RetailerProducts
+        //        .Where(rp => rp.RetailerID == userId)
+        //        .Select(rp => rp.ProductID)
         //        .ToHashSet();
 
         //    ViewBag.CurrentUserProducts = currentUserProducts;
 
-        //    return View(products);
+        //    return View(wholesalerProducts);
         //}
-
-        public IActionResult Browse()
-        {
-            return Content("Browse method works!");
-        }
-        // Add this method to your ProductController.cs file
         // GET: Products/DeleteWholesalerProduct/5
         [Authorize]
         public ActionResult DeleteWholesalerProduct(int? id)
@@ -369,6 +394,241 @@ namespace RetailerWholesalerSystem.Controllers
             }
 
             _db.WholesalerProducts.Remove(wholesalerProduct);
+            _db.SaveChanges();
+            return RedirectToAction("Index");
+        }
+
+        // GET: Products/Index for Retailers
+        public ActionResult IndexRetailer(bool viewCatalog = false)
+        {
+            string userId = _userManager.GetUserId(User);
+            var user = _db.Users.Find(userId);
+
+            if (user.UserType == UserType.Wholesaler && !viewCatalog)
+            {
+                // For wholesalers: show their products
+                var wholesalerProducts = _db.WholesalerProducts
+                    .Include(wp => wp.Product)
+                    .Where(wp => wp.WholesalerID == userId)
+                    .ToList();
+
+                return View("WholesalerProducts", wholesalerProducts);
+            }
+            else if (user.UserType == UserType.Retailer && !viewCatalog)
+            {
+                // For retailers: show their products
+                var retailerProducts = _db.RetailerProducts
+                    .Include(rp => rp.Product)
+                    .Where(rp => rp.RetailerID == userId)
+                    .ToList();
+
+                return View("RetailerProducts", retailerProducts);
+            }
+            else
+            {
+                // For everyone: show all products (catalog view)
+                var products = _db.Products.ToList();
+
+                // If the user is a wholesaler, load their current products for the UI
+                if (user.UserType == UserType.Wholesaler)
+                {
+                    ViewBag.CurrentUserProducts = _db.WholesalerProducts
+                        .Where(wp => wp.WholesalerID == userId)
+                        .Select(wp => wp.ProductID)
+                        .ToHashSet();
+
+                    // Also add product quantities for display
+                    var productStocks = _db.WholesalerProducts
+                        .Where(wp => wp.WholesalerID == userId)
+                        .ToDictionary(wp => wp.ProductID, wp => wp.AvailableQuantity);
+
+                    ViewBag.ProductStocks = productStocks;
+                }
+                // If the user is a retailer, load their current products for the UI
+                else if (user.UserType == UserType.Retailer)
+                {
+                    ViewBag.CurrentUserProducts = _db.RetailerProducts
+                        .Where(rp => rp.RetailerID == userId)
+                        .Select(rp => rp.ProductID)
+                        .ToHashSet();
+
+                    // Also add product quantities for display
+                    var productStocks = _db.RetailerProducts
+                        .Where(rp => rp.RetailerID == userId)
+                        .ToDictionary(rp => rp.ProductID, rp => rp.StockQuantity);
+
+                    ViewBag.ProductStocks = productStocks;
+                }
+
+                return View(products);
+            }
+        }
+
+        // GET: Products/AddToRetailer/5
+        [Authorize]
+        public ActionResult AddToRetailer(int? id)
+        {
+            string userId = _userManager.GetUserId(User);
+            var user = _db.Users.Find(userId);
+
+            if (user.UserType != UserType.Retailer)
+            {
+                return Unauthorized();
+            }
+
+            if (id == null)
+            {
+                return BadRequest();
+            }
+
+            Product product = _db.Products.Find(id);
+            if (product == null)
+            {
+                return NotFound();
+            }
+
+            var retailerProduct = new RetailerProduct
+            {
+                ProductID = product.ProductID,
+                RetailerID = userId,
+                Price = product.DefaultPrice,
+                StockQuantity = 0
+            };
+
+            return View(retailerProduct);
+        }
+
+        // POST: Products/AddToRetailer
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize]
+        public ActionResult AddToRetailer([Bind(include: "ProductID,Price,StockQuantity")] RetailerProduct retailerProduct)
+        {
+            string userId = _userManager.GetUserId(User);
+            var user = _db.Users.Find(userId);
+
+            if (user.UserType != UserType.Retailer)
+            {
+                return Unauthorized();
+            }
+
+            if (ModelState.IsValid)
+            {
+                retailerProduct.RetailerID = userId;
+                _db.RetailerProducts.Add(retailerProduct);
+                _db.SaveChanges();
+                return RedirectToAction("Index");
+            }
+
+            return View(retailerProduct);
+        }
+
+        // GET: Products/EditRetailerProduct/5
+        [Authorize]
+        public ActionResult EditRetailerProduct(int? id)
+        {
+            string userId = _userManager.GetUserId(User);
+            var user = _db.Users.Find(userId);
+
+            if (user.UserType != UserType.Retailer)
+            {
+                return Unauthorized();
+            }
+
+            if (id == null)
+            {
+                return BadRequest();
+            }
+
+            RetailerProduct retailerProduct = _db.RetailerProducts
+                .Include(rp => rp.Product)
+                .FirstOrDefault(rp => rp.RetailerProductID == id && rp.RetailerID == userId);
+
+            if (retailerProduct == null)
+            {
+                return NotFound();
+            }
+
+            return View(retailerProduct);
+        }
+
+        // POST: Products/EditRetailerProduct/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize]
+        public ActionResult EditRetailerProduct([Bind(include: "RetailerProductID,ProductID,Price,StockQuantity")] RetailerProduct retailerProduct)
+        {
+            string userId = _userManager.GetUserId(User);
+            var user = _db.Users.Find(userId);
+
+            if (user.UserType != UserType.Retailer)
+            {
+                return Unauthorized();
+            }
+
+            if (ModelState.IsValid)
+            {
+                retailerProduct.RetailerID = userId;
+                _db.Entry(retailerProduct).State = EntityState.Modified;
+                _db.SaveChanges();
+                return RedirectToAction("Index");
+            }
+
+            return View(retailerProduct);
+        }
+
+        // GET: Products/DeleteRetailerProduct/5
+        [Authorize]
+        public ActionResult DeleteRetailerProduct(int? id)
+        {
+            string userId = _userManager.GetUserId(User);
+            var user = _db.Users.Find(userId);
+
+            if (user.UserType != UserType.Retailer)
+            {
+                return Unauthorized();
+            }
+
+            if (id == null)
+            {
+                return BadRequest();
+            }
+
+            RetailerProduct retailerProduct = _db.RetailerProducts
+                .Include(rp => rp.Product)
+                .FirstOrDefault(rp => rp.RetailerProductID == id && rp.RetailerID == userId);
+
+            if (retailerProduct == null)
+            {
+                return NotFound();
+            }
+
+            return View(retailerProduct);
+        }
+
+        // POST: Products/DeleteRetailerProduct/5
+        [HttpPost, ActionName("DeleteRetailerProduct")]
+        [ValidateAntiForgeryToken]
+        [Authorize]
+        public ActionResult DeleteRetailerProductConfirmed(int RetailerProductID)
+        {
+            string userId = _userManager.GetUserId(User);
+            var user = _db.Users.Find(userId);
+
+            if (user.UserType != UserType.Retailer)
+            {
+                return Unauthorized();
+            }
+
+            RetailerProduct retailerProduct = _db.RetailerProducts
+                .FirstOrDefault(rp => rp.RetailerProductID == RetailerProductID && rp.RetailerID == userId);
+
+            if (retailerProduct == null)
+            {
+                return NotFound();
+            }
+
+            _db.RetailerProducts.Remove(retailerProduct);
             _db.SaveChanges();
             return RedirectToAction("Index");
         }

@@ -1,4 +1,4 @@
-﻿@model IEnumerable<RetailerWholesalerSystem.Models.WholesalerProduct>
+﻿@model IEnumerable<RetailerWholesalerSystem.Models.RetailerProduct>
 @{
     ViewData["Title"] = "My Inventory";
 }
@@ -9,7 +9,7 @@
             <h2>My Inventory</h2>
         </div>
         <div class="col-md-4 text-right">
-            <a asp-controller="Product" asp-action="IndexWholesaler" class="btn btn-primary">Add Products to Inventory</a>
+            <a asp-controller="Product" asp-action="BrowseWholesalerProducts" class="btn btn-primary">Browse Wholesaler Products</a>
         </div>
     </div>
 
@@ -23,8 +23,7 @@
                         <th>Description</th>
                         <th>Category</th>
                         <th>Your Price</th>
-                        <th>Available Quantity</th>
-                        <th>Min. Order</th>
+                        <th>Stock</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -36,12 +35,11 @@
                             <td>@item.Product.Description</td>
                             <td>@item.Product.Category</td>
                             <td>@item.Price.ToString("C")</td>
-                            <td>@item.AvailableQuantity</td>
-                            <td>@item.MinimumOrderQuantity</td>
+                            <td>@item.StockQuantity</td>
                             <td>
                                 <div class="btn-group">
-                                    <a asp-action="EditWholesalerProduct" asp-route-id="@item.WholesalerProductID" class="btn btn-sm btn-warning">Edit</a>
-                                    <a asp-action="DeleteWholesalerProduct" asp-route-id="@item.WholesalerProductID" class="btn btn-sm btn-danger">Delete</a>
+                                    <a asp-action="EditRetailerProduct" asp-route-id="@item.RetailerProductID" class="btn btn-sm btn-warning">Edit</a>
+                                    <a asp-action="DeleteRetailerProduct" asp-route-id="@item.RetailerProductID" class="btn btn-sm btn-danger">Delete</a>
                                 </div>
                             </td>
                         </tr>
@@ -54,7 +52,7 @@
     {
         <div class="alert alert-info">
             <p>You haven't added any products to your inventory yet.</p>
-            <p>Click the "Add Products to Inventory" button to start adding products from our catalog.</p>
+            <p>Click the "Browse Wholesaler Products" button to start adding products from wholesalers.</p>
         </div>
     }
 </div>

@@ -1,0 +1,61 @@
+﻿@model RetailerWholesalerSystem.Models.RetailerProduct
+@{
+    ViewData["Title"] = "Delete Inventory Item";
+}
+
+<div class="container">
+    <h2>Delete Inventory Item</h2>
+
+    <div class="alert alert-danger">
+        <h4>Are you sure you want to remove this product from your inventory?</h4>
+        <p>This action cannot be undone.</p>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            Product Details
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <dl class="row">
+                        <dt class="col-sm-4">Product Name:</dt>
+                        <dd class="col-sm-8">@Model.Product.Name</dd>
+
+                        <dt class="col-sm-4">Description:</dt>
+                        <dd class="col-sm-8">@Model.Product.Description</dd>
+
+                        <dt class="col-sm-4">Category:</dt>
+                        <dd class="col-sm-8">@Model.Product.Category</dd>
+
+                        <dt class="col-sm-4">Your Price:</dt>
+                        <dd class="col-sm-8">@Model.Price.ToString("C")</dd>
+
+                        <dt class="col-sm-4">Quantity:</dt>
+                        <dd class="col-sm-8">@Model.StockQuantity</dd>
+                    </dl>
+                </div>
+                <div class="col-md-4">
+                    @if (!string.IsNullOrEmpty(Model.Product.ImageURL))
+                    {
+                        <img src="@Model.Product.ImageURL" alt="@Model.Product.Name" class="img-fluid">
+                    }
+                    else
+                    {
+                        <div class="bg-light text-center py-5">
+                            <i class="fa fa-image fa-4x text-muted"></i>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <form asp-action="DeleteRetailerProduct" method="post">
+        <input type="hidden" asp-for="RetailerProductID" />
+        <div class="form-group">
+            <input type="submit" value="Delete" class="btn btn-danger" />
+            <a asp-action="RetailerInventory" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>

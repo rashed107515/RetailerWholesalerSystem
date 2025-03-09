@@ -39,7 +39,7 @@ namespace RetailerWholesalerSystem.Models
         public DbSet<WholesalerProduct> WholesalerProducts { get; set; }
         public DbSet<Transaction> Transactions { get; set; }
         public DbSet<TransactionDetail> TransactionDetails { get; set; }
-
+        public DbSet<RetailerProduct> RetailerProducts { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

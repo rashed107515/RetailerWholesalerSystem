@@ -27,6 +27,8 @@ namespace RetailerWholesalerSystem.Models
         public string ImageURL { get; set; }
 
         // Navigation properties
+        // Add this to the Product class
+        public virtual ICollection<RetailerProduct> RetailerProducts { get; set; }
         public virtual ICollection<WholesalerProduct> WholesalerProducts { get; set; }
         public virtual ICollection<TransactionDetail> TransactionDetails { get; set; }
     }
