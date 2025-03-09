@@ -1,0 +1,77 @@
+﻿@model IEnumerable<RetailerWholesalerSystem.Models.WholesalerProduct>
+@{
+    ViewData["Title"] = "Wholesaler Inventory";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>My Inventory</h2>
+        </div>
+        <div class="col-md-4 text-end">
+            <a asp-controller="Product" asp-action="AddToWholesaler" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Add New Product
+            </a>
+        </div>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info">
+            <p>You don't have any products in your inventory yet. Click "Add New Product" to get started.</p>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead class="thead-dark">
+                    <tr>
+                        <th>Image</th>
+                        <th>Product Name</th>
+                        <th>Description</th>
+                        <th>Price</th>
+                        <th>Quantity</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>
+                                <img src="@Url.Content(item.Product.ImageURL)" alt="@item.Product.Name" style="width:50px;height:50px;" />
+                            </td>
+                            <td>@item.Product.Name</td>
+                            <td>@(item.Product.Description?.Length > 50 ? item.Product.Description.Substring(0, 47) + "..." : item.Product.Description)</td>
+                            <td>@item.Price.ToString("C")</td>
+                            <td>@item.AvailableQuantity</td>
+                            <td>
+                                @if (item.AvailableQuantity > 0)
+                                {
+                                    <span class="badge bg-success">In Stock</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">Out of Stock</span>
+                                }
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    <a asp-controller="Product" asp-action="EditWholesalerProduct" asp-route-id="@item.WholesalerProductID" class="btn btn-sm btn-warning">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </a>
+                                    <a asp-controller="Product" asp-action="DeleteWholesalerProduct" asp-route-id="@item.WholesalerProductID" class="btn btn-sm btn-danger ms-1">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

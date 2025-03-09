@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RetailerWholesalerSystem.Models;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace RetailerWholesalerSystem.Controllers
 {
@@ -57,7 +58,7 @@ namespace RetailerWholesalerSystem.Controllers
                     .Where(wp => wp.WholesalerID == userId)
                     .ToList();
 
-                return View("WholesalerProducts", wholesalerProducts);
+                return View("WholesalerInventory", wholesalerProducts);
             }
             else
             {
@@ -152,9 +153,142 @@ namespace RetailerWholesalerSystem.Controllers
             return View(product);
         }
 
-        // GET: Products/AddToWholesaler/5
+        // GET: Products/AddToWholesaler
+        //[Authorize]
+        //public ActionResult AddToWholesaler(int? id = null)
+        //{
+        //    string userId = _userManager.GetUserId(User);
+        //    var user = _db.Users.Find(userId);
+
+        //    if (user.UserType != UserType.Wholesaler)
+        //    {
+        //        return Unauthorized();
+        //    }
+
+        //    // Get all products for dropdown
+        //    ViewBag.Products = new SelectList(_db.Products, "ProductID", "Name");
+
+        //    // If id is provided, pre-select that product
+        //    if (id.HasValue)
+        //    {
+        //        Product product = _db.Products.Find(id);
+        //        if (product == null)
+        //        {
+        //            return NotFound();
+        //        }
+
+        //        var wholesalerProduct = new WholesalerProduct
+        //        {
+        //            ProductID = product.ProductID,
+        //            WholesalerID = userId,
+        //            Price = product.DefaultPrice,
+        //            AvailableQuantity = 0,
+        //            MinimumOrderQuantity = 1
+        //        };
+
+        //        return View(wholesalerProduct);
+        //    }
+
+        //    // If no id provided, just return the view with empty model
+        //    return View(new WholesalerProduct
+        //    {
+        //        WholesalerID = userId,
+        //        AvailableQuantity = 0,
+        //        MinimumOrderQuantity = 1
+        //    });
+        //}
+        // POST: Products/AddToWholesaler
+        //[HttpPost]
+        //[ValidateAntiForgeryToken]
+        //[Authorize]
+        //public ActionResult AddToWholesaler([Bind(include:"ProductID,Price,AvailableQuantity,MinimumOrderQuantity")] WholesalerProduct wholesalerProduct)
+        //{
+        //    string userId = _userManager.GetUserId(User);
+        //    var user = _db.Users.Find(userId);
+
+        //    if (user.UserType != UserType.Wholesaler)
+        //    {
+        //        return Unauthorized();
+        //    }
+
+        //    if (ModelState.IsValid)
+        //    {
+        //        wholesalerProduct.WholesalerID = userId;
+        //        _db.WholesalerProducts.Add(wholesalerProduct);
+        //        _db.SaveChanges();
+        //        return RedirectToAction("IndexWholesaler");
+        //    }
+
+        //    return View(wholesalerProduct);
+        //}
+
+        // GET: Products/AddToWholesaler
+
+        // GET: Products/GetProductDetails
+        [HttpGet]
+        public JsonResult GetProductDetails(int id)
+        {
+            var product = _db.Products.Find(id);
+            if (product == null)
+            {
+                return Json(new { success = false });
+            }
+
+            return Json(new
+            {
+                success = true,
+                defaultPrice = product.DefaultPrice,
+                name = product.Name,
+                description = product.Description
+            });
+        }
+
+        //[Authorize]
+        //public ActionResult AddToWholesaler(int? id = null)
+        //{
+        //    string userId = _userManager.GetUserId(User);
+        //    var user = _db.Users.Find(userId);
+
+        //    if (user.UserType != UserType.Wholesaler)
+        //    {
+        //        return Unauthorized();
+        //    }
+
+        //    // Get all products for dropdown - ensure this query returns data
+        //    var products = _db.Products.ToList();  // Add this line to verify data
+        //    ViewBag.Products = new SelectList(products, "ProductID", "Name");
+
+        //    // If id is provided, pre-select that product
+        //    if (id.HasValue)
+        //    {
+        //        Product product = _db.Products.Find(id);
+        //        if (product == null)
+        //        {
+        //            return NotFound();
+        //        }
+
+        //        var wholesalerProduct = new WholesalerProduct
+        //        {
+        //            ProductID = product.ProductID,
+        //            WholesalerID = userId,
+        //            Price = product.DefaultPrice,
+        //            AvailableQuantity = 0,
+        //            MinimumOrderQuantity = 1
+        //        };
+
+        //        return View(wholesalerProduct);
+        //    }
+
+        //    // If no id provided, just return the view with empty model
+        //    return View(new WholesalerProduct
+        //    {
+        //        WholesalerID = userId,
+        //        AvailableQuantity = 0,
+        //        MinimumOrderQuantity = 1
+        //    });
+        //}
         [Authorize]
-        public ActionResult AddToWholesaler(int? id)
+        public ActionResult AddToWholesaler(int? id = null)
         {
             string userId = _userManager.GetUserId(User);
             var user = _db.Users.Find(userId);
@@ -164,34 +298,50 @@ namespace RetailerWholesalerSystem.Controllers
                 return Unauthorized();
             }
 
-            if (id == null)
+            // Get all products for dropdown - ensure this query returns data
+            var products = _db.Products.ToList();
+
+            // Add this debugging line
+            Console.WriteLine($"Found {products.Count} products for dropdown");
+
+            // Re-select the product ID if we have one
+            int? selectedProductId = id;
+            ViewBag.Products = new SelectList(products, "ProductID", "Name", selectedProductId);
+
+            // If id is provided, pre-select that product
+            if (id.HasValue)
             {
-                return BadRequest();
+                Product product = _db.Products.Find(id);
+                if (product == null)
+                {
+                    return NotFound();
+                }
+
+                var wholesalerProduct = new WholesalerProduct
+                {
+                    ProductID = product.ProductID,
+                    WholesalerID = userId,
+                    Price = product.DefaultPrice,
+                    AvailableQuantity = 0,
+                    MinimumOrderQuantity = 1
+                };
+
+                return View(wholesalerProduct);
             }
 
-            Product product = _db.Products.Find(id);
-            if (product == null)
+            // If no id provided, just return the view with empty model
+            return View(new WholesalerProduct
             {
-                return NotFound();
-            }
-
-            var wholesalerProduct = new WholesalerProduct
-            {
-                ProductID = product.ProductID,
                 WholesalerID = userId,
-                Price = product.DefaultPrice,
                 AvailableQuantity = 0,
                 MinimumOrderQuantity = 1
-            };
-
-            return View(wholesalerProduct);
+            });
         }
 
-        // POST: Products/AddToWholesaler
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize]
-        public ActionResult AddToWholesaler([Bind(include:"ProductID,Price,AvailableQuantity,MinimumOrderQuantity")] WholesalerProduct wholesalerProduct)
+        public ActionResult AddToWholesaler([Bind(include: "ProductID,Price,AvailableQuantity,MinimumOrderQuantity")] WholesalerProduct wholesalerProduct)
         {
             string userId = _userManager.GetUserId(User);
             var user = _db.Users.Find(userId);
@@ -204,13 +354,61 @@ namespace RetailerWholesalerSystem.Controllers
             if (ModelState.IsValid)
             {
                 wholesalerProduct.WholesalerID = userId;
-                _db.WholesalerProducts.Add(wholesalerProduct);
-                _db.SaveChanges();
-                return RedirectToAction("Index");
+
+                // Check if this product is already in inventory
+                var existingProduct = _db.WholesalerProducts
+                    .FirstOrDefault(wp => wp.WholesalerID == userId && wp.ProductID == wholesalerProduct.ProductID);
+
+                if (existingProduct != null)
+                {
+                    // Update existing product instead of adding new one
+                    existingProduct.Price = wholesalerProduct.Price;
+                    existingProduct.AvailableQuantity += wholesalerProduct.AvailableQuantity;
+                    existingProduct.MinimumOrderQuantity = wholesalerProduct.MinimumOrderQuantity;
+                    _db.SaveChanges();
+                }
+                else
+                {
+                    // Add new product
+                    _db.WholesalerProducts.Add(wholesalerProduct);
+                    _db.SaveChanges();
+                }
+
+                // Return to the inventory view
+                return RedirectToAction("IndexWholesaler", new { viewCatalog = false });
             }
 
+            // If we got this far, something failed - repopulate the dropdown
+            // Make sure to select the current ProductID when repopulating
+            ViewBag.Products = new SelectList(_db.Products, "ProductID", "Name", wholesalerProduct.ProductID);
             return View(wholesalerProduct);
         }
+        //[HttpPost]
+        //[ValidateAntiForgeryToken]
+        //[Authorize]
+        //public ActionResult AddToWholesaler([Bind(include: "ProductID,Price,AvailableQuantity,MinimumOrderQuantity")] WholesalerProduct wholesalerProduct)
+        //{
+        //    string userId = _userManager.GetUserId(User);
+        //    var user = _db.Users.Find(userId);
+
+        //    if (user.UserType != UserType.Wholesaler)
+        //    {
+        //        return Unauthorized();
+        //    }
+
+        //    if (ModelState.IsValid)
+        //    {
+        //        wholesalerProduct.WholesalerID = userId;
+        //        _db.WholesalerProducts.Add(wholesalerProduct);
+        //        _db.SaveChanges();
+
+        //        // Return to the inventory view
+        //        return RedirectToAction("IndexWholesaler", new { viewCatalog = false });
+        //    }
+
+        //    ViewBag.Products = new SelectList(_db.Products, "ProductID", "Name");
+        //    return View(wholesalerProduct);
+        //}
 
         // GET: Products/EditWholesalerProduct/5
         [Authorize]
@@ -522,6 +720,7 @@ namespace RetailerWholesalerSystem.Controllers
 
             return View(retailerProduct);
         }
+
 
         // GET: Products/EditRetailerProduct/5
         [Authorize]

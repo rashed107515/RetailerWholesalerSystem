@@ -1,0 +1,77 @@
+﻿@model RetailerWholesalerSystem.Models.WholesalerProduct
+@{
+    ViewData["Title"] = "Update Inventory";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-10 offset-md-1">
+            <div class="card">
+                <div class="card-header bg-warning">
+                    <h4 class="mb-0">Update Product in Inventory</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-2">
+                            <img src="@Url.Content(Model.Product.ImageURL)" alt="@Model.Product.Name" class="img-fluid rounded" />
+                        </div>
+                        <div class="col-md-10">
+                            <h3>@Model.Product.Name</h3>
+                            <p class="text-muted">@Model.Product.Description</p>
+                        </div>
+                    </div>
+
+                    <form asp-action="EditWholesalerProduct" asp-controller="Product" method="post">
+                        <input type="hidden" asp-for="WholesalerProductID" />
+                        <input type="hidden" asp-for="ProductID" />
+                        <input type="hidden" asp-for="WholesalerID" />
+
+                        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label asp-for="Price" class="control-label">Wholesale Price</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <input asp-for="Price" class="form-control" />
+                                    </div>
+                                    <span asp-validation-for="Price" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label asp-for="AvailableQuantity" class="control-label">Available Quantity</label>
+                                    <input asp-for="AvailableQuantity" class="form-control" />
+                                    <span asp-validation-for="AvailableQuantity" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label asp-for="MinimumOrderQuantity" class="control-label">Minimum Order Quantity</label>
+                            <input asp-for="MinimumOrderQuantity" class="form-control" />
+                            <span asp-validation-for="MinimumOrderQuantity" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-group mt-4">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save"></i> Update Inventory
+                            </button>
+                            <a asp-action="WholesalerInventory" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Back to Inventory
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

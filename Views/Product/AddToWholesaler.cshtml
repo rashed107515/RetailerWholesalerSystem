@@ -1,0 +1,105 @@
+﻿@model RetailerWholesalerSystem.Models.WholesalerProduct
+@{
+    ViewData["Title"] = "Add Product to Inventory";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-10 offset-md-1">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Add Product to Inventory</h4>
+                </div>
+                <div class="card-body">
+                    <form asp-action="AddToWholesaler" asp-controller="Product" method="post" enctype="multipart/form-data">
+                        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label asp-for="ProductID" class="control-label">Select Product</label>
+                                    <select asp-for="ProductID" class="form-control" asp-items="ViewBag.Products" required>
+                                        <option value="">-- Select Product --</option>
+                                    </select>
+                                    <span asp-validation-for="ProductID" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label asp-for="Price" class="control-label">Wholesale Price</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">$</span>
+                                        <input asp-for="Price" class="form-control" />
+                                    </div>
+                                    <span asp-validation-for="Price" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label asp-for="AvailableQuantity" class="control-label">Available Quantity</label>
+                                    <input asp-for="AvailableQuantity" class="form-control" />
+                                    <span asp-validation-for="AvailableQuantity" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label asp-for="MinimumOrderQuantity" class="control-label">Minimum Order Quantity</label>
+                                    <input asp-for="MinimumOrderQuantity" class="form-control" />
+                                    <span asp-validation-for="MinimumOrderQuantity" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group mt-4">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save"></i> Add to Inventory
+                            </button>
+                            <a asp-action="IndexWholesaler" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Back to Inventory
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        $(document).ready(function() {
+            // Log when product is selected to verify it's working
+                   $("#ProductID").change(function() {
+            console.log("Product selected: " + $(this).val());
+
+            // Only call the AJAX if a product is selected
+            if ($(this).val()) {
+                $.ajax({
+                    url: '@Url.Action("GetProductDetails", "Product")',
+                    type: 'GET',
+                    data: { id: $(this).val() },
+                    success: function(data) {
+                        if (data.success) {
+                            $("#Price").val(data.defaultPrice);
+                            console.log("Got price: " + data.defaultPrice);
+                        } else {
+                            console.log("Failed to get product details");
+                        }
+                    },
+                    error: function(error) {
+                        console.log("AJAX error:", error);
+                    }
+                });
+            }
+        });
+        });
+    </script>
+}

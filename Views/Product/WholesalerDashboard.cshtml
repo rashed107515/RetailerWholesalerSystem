@@ -1,0 +1,201 @@
+﻿@model RetailerWholesalerSystem.ViewModels.WholesalerDashboardViewModel
+@{
+    ViewData["Title"] = "Wholesaler Dashboard";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid mt-4">
+    <h2>Wholesaler Dashboard</h2>
+    <p class="text-muted">Welcome back, @User.Identity.Name!</p>
+
+    <div class="row">
+        <!-- Summary Cards -->
+        <div class="col-md-3 mb-4">
+            <div class="card bg-primary text-white h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Total Products</h5>
+                    <p class="display-4">@Model.TotalProducts</p>
+                </div>
+                <div class="card-footer bg-primary border-0">
+                    <a asp-controller="Product" asp-action="WholesalerInventory" class="text-white text-decoration-none">
+                        View All <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-4">
+            <div class="card bg-success text-white h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Active Orders</h5>
+                    <p class="display-4">@Model.ActiveOrders</p>
+                </div>
+                <div class="card-footer bg-success border-0">
+                    <a asp-controller="Order" asp-action="WholesalerOrders" class="text-white text-decoration-none">
+                        Manage Orders <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-4">
+            <div class="card bg-warning h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Low Stock Items</h5>
+                    <p class="display-4">@Model.LowStockItems</p>
+                </div>
+                <div class="card-footer bg-warning border-0">
+                    <a asp-controller="Product" asp-action="LowStockItems" class="text-dark text-decoration-none">
+                        View Items <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 mb-4">
+            <div class="card bg-info text-white h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Revenue This Month</h5>
+                    <p class="display-4">@Model.MonthlyRevenue.ToString("C0")</p>
+                </div>
+                <div class="card-footer bg-info border-0">
+                    <a asp-controller="Report" asp-action="Sales" class="text-white text-decoration-none">
+                        View Reports <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Recent Orders -->
+        <div class="col-md-8 mb-4">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Recent Orders</h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.RecentOrders != null && Model.RecentOrders.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Order #</th>
+                                        <th>Retailer</th>
+                                        <th>Date</th>
+                                        <th>Total</th>
+                                        <th>Status</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var order in Model.RecentOrders)
+                                    {
+                                        <tr>
+                                            <td>@order.OrderNumber</td>
+                                            <td>@order.RetailerName</td>
+                                            <td>@order.OrderDate.ToShortDateString()</td>
+                                            <td>@order.TotalAmount.ToString("C")</td>
+                                            <td>
+                                                @switch (order.Status)
+                                                {
+                                                    case "Pending":
+                                                        <span class="badge bg-warning text-dark">Pending</span>
+                                                        break;
+                                                    case "Processing":
+                                                        <span class="badge bg-info">Processing</span>
+                                                        break;
+                                                    case "Shipped":
+                                                        <span class="badge bg-primary">Shipped</span>
+                                                        break;
+                                                    case "Delivered":
+                                                        <span class="badge bg-success">Delivered</span>
+                                                        break;
+                                                    case "Cancelled":
+                                                        <span class="badge bg-danger">Cancelled</span>
+                                                        break;
+                                                    default:
+                                                        <span class="badge bg-secondary">@order.Status</span>
+                                                        break;
+                                                }
+                                            </td>
+                                            <td>
+                                                <a asp-controller="Order" asp-action="Details" asp-route-id="@order.Id" class="btn btn-sm btn-outline-primary">
+                                                    View
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted">No recent orders found.</p>
+                    }
+                </div>
+                <div class="card-footer bg-light">
+                    <a asp-controller="Order" asp-action="WholesalerOrders" class="btn btn-outline-secondary btn-sm">
+                        View All Orders
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions & Low Stock -->
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a asp-controller="Product" asp-action="AddToWholesaler" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Add New Product
+                        </a>
+                        <a asp-controller="Product" asp-action="WholesalerInventory" class="btn btn-outline-dark">
+                            <i class="fas fa-boxes"></i> Manage Inventory
+                        </a>
+                        <a asp-controller="Order" asp-action="WholesalerOrders" class="btn btn-outline-dark">
+                            <i class="fas fa-shipping-fast"></i> Process Orders
+                        </a>
+                        <a asp-controller="Report" asp-action="Sales" class="btn btn-outline-dark">
+                            <i class="fas fa-chart-line"></i> View Sales Reports
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header bg-warning">
+                    <h5 class="mb-0">Low Stock Alert</h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.LowStockProducts != null && Model.LowStockProducts.Any())
+                    {
+                        <ul class="list-group">
+                            @foreach (var product in Model.LowStockProducts)
+                            {
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    @product.Name
+                                    <span class="badge bg-danger rounded-pill">@product.Quantity left</span>
+                                </li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <p class="text-muted">No low stock items at this time.</p>
+                    }
+                </div>
+                <div class="card-footer bg-light">
+                    <a asp-controller="Product" asp-action="LowStockItems" class="btn btn-outline-warning btn-sm">
+                        View All Low Stock Items
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
