@@ -39,16 +39,19 @@ namespace RetailerWholesalerSystem.Controllers
 
             if (!string.IsNullOrEmpty(category))
             {
-                query = query.Where(wp => wp.Product.Category == category);
+                // Assuming Category is an enum
+              
+                    query = query.Where(wp => wp.Product.Category.Name == category);
+                
             }
 
             var products = query.ToList();
 
             // Get all categories
             var categories = db.Products
-                .Select(p => p.Category)
-                .Distinct()
-                .ToList();
+     .Select(p => p.Category.Name)
+     .Distinct()
+     .ToList();
 
             var viewModel = new ProductComparisonViewModel
             {

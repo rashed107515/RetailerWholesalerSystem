@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RetailerWholesalerSystem.Models;
 
@@ -11,9 +12,11 @@ using RetailerWholesalerSystem.Models;
 namespace RetailerWholesalerSystem.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250309150309_AddRetailerProductsTable")]
+    partial class AddRetailerProductsTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -235,33 +238,6 @@ namespace RetailerWholesalerSystem.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
-            modelBuilder.Entity("RetailerWholesalerSystem.Models.Category", b =>
-                {
-                    b.Property<int>("CategoryID")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CategoryID"));
-
-                    b.Property<string>("CreatedByUserID")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsGlobal")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("CategoryID");
-
-                    b.ToTable("Categories");
-                });
-
             modelBuilder.Entity("RetailerWholesalerSystem.Models.Product", b =>
                 {
                     b.Property<int>("ProductID")
@@ -270,8 +246,9 @@ namespace RetailerWholesalerSystem.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductID"));
 
-                    b.Property<int>("CategoryID")
-                        .HasColumnType("int");
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal>("DefaultPrice")
                         .HasColumnType("decimal(18,2)");
@@ -291,8 +268,6 @@ namespace RetailerWholesalerSystem.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.HasKey("ProductID");
-
-                    b.HasIndex("CategoryID");
 
                     b.ToTable("Products");
                 });
@@ -483,17 +458,6 @@ namespace RetailerWholesalerSystem.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("RetailerWholesalerSystem.Models.Product", b =>
-                {
-                    b.HasOne("RetailerWholesalerSystem.Models.Category", "Category")
-                        .WithMany()
-                        .HasForeignKey("CategoryID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Category");
                 });
 
             modelBuilder.Entity("RetailerWholesalerSystem.Models.RetailerProduct", b =>

@@ -1,4 +1,4 @@
-﻿@model IEnumerable<RetailerWholesalerSystem.Models.Product>
+﻿@model IEnumerable<RetailerWholesalerSystem.Models.Category>
 @{
     ViewData["Title"] = "Manage Categories";
 }
@@ -23,7 +23,7 @@
                     <tr>
                         <th>Category Name</th>
                         <th>Description</th>
-                        <th>Product Count</th>
+                        <th>Global</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -31,21 +31,18 @@
                     @foreach (var category in Model)
                     {
                         <tr>
-                            <td>@category.ProductID</td>
                             <td>@category.Name</td>
                             <td>@category.Description</td>
+                            <td>@(category.IsGlobal ? "Yes" : "No")</td>
                             <td>
                                 <div class="btn-group">
                                     <button type="button" class="btn btn-sm btn-warning edit-category"
-                                            data-id="@category.ProductID"
+                                            data-id="@category.CategoryID"
                                             data-name="@category.Name"
                                             data-description="@category.Description">
                                         Edit
                                     </button>
-                                    @* @if (category.ProductCount == 0) *@
-                                    @* { *@
-                                    @*     <a asp-action="DeleteCategory" asp-route-id="@category.ProductID" class="btn btn-sm btn-danger">Delete</a> *@
-                                    @* } *@
+                                    <a asp-action="Delete" asp-route-id="@category.CategoryID" class="btn btn-sm btn-danger">Delete</a>
                                 </div>
                             </td>
                         </tr>

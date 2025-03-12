@@ -16,25 +16,19 @@ namespace RetailerWholesalerSystem.ViewModels
         public string Description { get; set; }
 
         [Required(ErrorMessage = "Category is required")]
-        public int Category { get; set; }
+        public int CategoryID { get; set; }  // ✅ Renamed for consistency
 
         [Required(ErrorMessage = "Default price is required")]
         [Range(0.01, 10000, ErrorMessage = "Price must be between $0.01 and $10,000")]
         [Display(Name = "Default Price")]
         public decimal DefaultPrice { get; set; }
 
-        [Display(Name = "Wholesaler Price")]
-        [Range(0.01, 10000, ErrorMessage = "Price must be between $0.01 and $10,000")]
-        public decimal? WholesalerPrice { get; set; }
-
-        [Display(Name = "Stock Quantity")]
-        [Range(0, 100000, ErrorMessage = "Stock quantity must be between 0 and 100,000")]
-        public int StockQuantity { get; set; }
-
         [Display(Name = "Product Image")]
-        public IFormFile ProductImage { get; set; }
+        [Required(ErrorMessage = "Product image is required")]
+        [DataType(DataType.Upload)]
+        public IFormFile ProductImage { get; set; }  // ✅ Added validation
 
-        public string ImageURL { get; set; }
+        public string ImageURL { get; set; } = string.Empty; // ✅ Set a default empty string to prevent null validation
 
         public bool RemoveImage { get; set; }
     }

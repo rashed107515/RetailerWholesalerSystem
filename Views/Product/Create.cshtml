@@ -28,9 +28,9 @@
                 </div>
 
                 <div class="form-group">
-                    <label asp-for="Category" class="control-label"></label>
-                    <select asp-for="Category" class="form-control" asp-items="ViewBag.Categories"></select>
-                    <span asp-validation-for="Category" class="text-danger"></span>
+                    <label asp-for="CategoryID" class="control-label"></label>
+                    <select asp-for="CategoryID" class="form-control" asp-items="ViewBag.Categories"></select>
+                    <span asp-validation-for="CategoryID" class="text-danger"></span>
                 </div>
 
                 <div class="form-group">
@@ -43,27 +43,6 @@
                     </div>
                     <span asp-validation-for="DefaultPrice" class="text-danger"></span>
                 </div>
-
-                @if (User.IsInRole("Wholesaler"))
-                {
-                    <div class="form-group">
-                        <label asp-for="StockQuantity" class="control-label">Stock Quantity</label>
-                        <input asp-for="StockQuantity" class="form-control" />
-                        <span asp-validation-for="StockQuantity" class="text-danger"></span>
-                    </div>
-
-                    <div class="form-group">
-                        <label asp-for="WholesalerPrice" class="control-label">Your Selling Price</label>
-                        <div class="input-group">
-                            <div class="input-group-prepend">
-                                <span class="input-group-text">$</span>
-                            </div>
-                            <input asp-for="WholesalerPrice" class="form-control" />
-                        </div>
-                        <span asp-validation-for="WholesalerPrice" class="text-danger"></span>
-                        <small class="form-text text-muted">If different from the default price</small>
-                    </div>
-                }
 
                 <div class="form-group">
                     <label asp-for="ProductImage" class="control-label">Product Image</label>

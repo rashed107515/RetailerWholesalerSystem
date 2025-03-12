@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace RetailerWholesalerSystem.Models
 {
@@ -17,7 +18,10 @@ namespace RetailerWholesalerSystem.Models
         public string Description { get; set; }
 
         [Required]
-        public string Category { get; set; }
+        public int CategoryID { get; set; }
+
+        [ForeignKey("CategoryID")]
+        public virtual Category Category { get; set; }
 
         [Display(Name = "Default Price")]
         [DataType(DataType.Currency)]
