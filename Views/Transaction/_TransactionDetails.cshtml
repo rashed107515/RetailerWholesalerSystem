@@ -1,0 +1,40 @@
+﻿@model RetailerWholesalerSystem.Models.Transaction
+
+<div class="panel panel-default">
+    <div class="panel-heading">
+        <h4>Transaction Information</h4>
+    </div>
+    <div class="panel-body">
+        <dl class="dl-horizontal">
+            <dt>Transaction ID</dt>
+            <dd>@Model.TransactionID</dd>
+
+            <dt>Date</dt>
+            <dd>@Model.Date.ToString("yyyy-MM-dd HH:mm")</dd>
+
+            <dt>Retailer</dt>
+            <dd>@Model.Retailer.UserName</dd>
+
+            <dt>Wholesaler</dt>
+            <dd>@Model.Wholesaler.UserName</dd>
+
+            <dt>Status</dt>
+            <dd>@Model.Status</dd>
+
+            @if (!string.IsNullOrEmpty(Model.PaymentMethod))
+            {
+                <dt>Payment Method</dt>
+                <dd>@Model.PaymentMethod</dd>
+            }
+
+            <dt>Total Amount</dt>
+            <dd>@string.Format("{0:C}", Model.TotalAmount)</dd>
+
+            @if (!string.IsNullOrEmpty(Model.Notes))
+            {
+                <dt>Notes</dt>
+                <dd>@Model.Notes</dd>
+            }
+        </dl>
+    </div>
+</div>

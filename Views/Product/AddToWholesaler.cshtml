@@ -13,7 +13,11 @@
                 </div>
                 <div class="card-body">
                     <form asp-action="AddToWholesaler" asp-controller="Product" method="post" enctype="multipart/form-data">
-                        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                        <!-- Use ViewBag to get the user ID -->
+                        <input type="hidden" asp-for="WholesalerID" value="@ViewBag.UserId" />
+
+                        <!-- Show ALL validation errors -->
+                        <div asp-validation-summary="All" class="text-danger"></div>
 
                         <div class="row mb-3">
                             <div class="col-md-6">
@@ -77,29 +81,29 @@
     <script>
         $(document).ready(function() {
             // Log when product is selected to verify it's working
-                   $("#ProductID").change(function() {
-            console.log("Product selected: " + $(this).val());
+            $("#ProductID").change(function() {
+                console.log("Product selected: " + $(this).val());
 
-            // Only call the AJAX if a product is selected
-            if ($(this).val()) {
-                $.ajax({
-                    url: '@Url.Action("GetProductDetails", "Product")',
-                    type: 'GET',
-                    data: { id: $(this).val() },
-                    success: function(data) {
-                        if (data.success) {
-                            $("#Price").val(data.defaultPrice);
-                            console.log("Got price: " + data.defaultPrice);
-                        } else {
-                            console.log("Failed to get product details");
+                // Only call the AJAX if a product is selected
+                if ($(this).val()) {
+                    $.ajax({
+                        url: '@Url.Action("GetProductDetails", "Product")',
+                        type: 'GET',
+                        data: { id: $(this).val() },
+                        success: function(data) {
+                            if (data.success) {
+                                $("#Price").val(data.defaultPrice);
+                                console.log("Got price: " + data.defaultPrice);
+                            } else {
+                                console.log("Failed to get product details");
+                            }
+                        },
+                        error: function(error) {
+                            console.log("AJAX error:", error);
                         }
-                    },
-                    error: function(error) {
-                        console.log("AJAX error:", error);
-                    }
-                });
-            }
-        });
+                    });
+                }
+            });
         });
     </script>
 }

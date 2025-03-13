@@ -1,0 +1,38 @@
+﻿@model IEnumerable<RetailerWholesalerSystem.Models.Transaction>
+
+@{
+    ViewBag.Title = "My Transactions";
+}
+
+<h2>My Transactions</h2>
+
+<p>
+    @Html.ActionLink("Create New Transaction", "SelectWholesaler", null, new { @class = "btn btn-primary" })
+</p>
+
+<table class="table">
+    <tr>
+        <th>@Html.DisplayNameFor(model => model.Date)</th>
+        <th>Wholesaler</th>
+        <th>@Html.DisplayNameFor(model => model.TotalAmount)</th>
+        <th>@Html.DisplayNameFor(model => model.Status)</th>
+        <th>Actions</th>
+    </tr>
+
+    @foreach (var item in Model)
+    {
+        <tr>
+            <td>@Html.DisplayFor(modelItem => item.Date)</td>
+            <td>@Html.DisplayFor(modelItem => item.Wholesaler.UserName)</td>
+            <td>@Html.DisplayFor(modelItem => item.TotalAmount)</td>
+            <td>@Html.DisplayFor(modelItem => item.Status)</td>
+            <td>
+                @Html.ActionLink("Details", "Details", new { id = item.TransactionID }) |
+                @if (item.Status == RetailerWholesalerSystem.Models.TransactionStatus.Pending)
+                {
+                    @Html.ActionLink("Update Status", "UpdateStatus", new { id = item.TransactionID })
+                }
+            </td>
+        </tr>
+    }
+</table>

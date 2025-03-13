@@ -5,6 +5,7 @@
 }
 
 <div class="container mt-4">
+    <!-- Header section unchanged -->
     <div class="row mb-4">
         <div class="col-md-6">
             <h2>Wholesaler Dashboard</h2>
@@ -19,9 +20,13 @@
             <a asp-controller="Product" asp-action="AddToWholesaler" class="btn btn-primary">
                 <i class="fas fa-plus"></i> Add To Inventory
             </a>
+            <a asp-controller="Product" asp-action="MyInventory" class="nav-link">
+                <i class="fas fa-boxes"></i> My Inventory
+            </a>
         </div>
     </div>
 
+    <!-- Summary cards section unchanged -->
     <div class="row mb-4">
         <div class="col-md-12">
             <div class="card">
@@ -101,11 +106,18 @@
                             {
                                 <tr>
                                     <td>
-                                        <img src="@Url.Content(item.Product.ImageURL)" alt="@item.Product.Name" style="width:50px;height:50px;" class="img-thumbnail" />
+                                        @if (item.Product != null && !string.IsNullOrEmpty(item.Product.ImageURL))
+                                        {
+                                            <img src="@Url.Content(item.Product.ImageURL)" alt="@(item.Product?.Name ?? "Product")" style="width:50px;height:50px;" class="img-thumbnail" />
+                                        }
+                                        else
+                                        {
+                                            <img src="~/images/default-product.png" alt="No Image" style="width:50px;height:50px;" class="img-thumbnail" />
+                                        }
                                     </td>
-                                    <td>@item.Product.Name</td>
-                                    <td>@item.Product.Category.Name</td>
-                                    <td>@(item.Product.Description?.Length > 50 ? item.Product.Description.Substring(0, 47) + "..." : item.Product.Description)</td>
+                                    <td>@(item.Product?.Name ?? "Unknown Product")</td>
+                                    <td>@(item.Product?.Category?.Name ?? "Uncategorized")</td>
+                                    <td>@(item.Product?.Description?.Length > 50 ? item.Product.Description.Substring(0, 47) + "..." : item.Product?.Description ?? "No description")</td>
                                     <td>@item.Price.ToString("C")</td>
                                     <td>@item.AvailableQuantity</td>
                                     <td>@item.MinimumOrderQuantity</td>
@@ -139,7 +151,7 @@
 
         <div class="mt-4">
             <a asp-controller="Product" asp-action="Index" asp-route-viewCatalog="true" class="btn btn-outline-primary">
-                <i class="fas fa-th-large"></i> View Full Product Catalog
+                <i class="fas fa-th-large"></i> View Full Product Categories
             </a>
         </div>
     }

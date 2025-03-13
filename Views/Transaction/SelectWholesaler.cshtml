@@ -1,0 +1,25 @@
+﻿@model IEnumerable<RetailerWholesalerSystem.Models.ApplicationUser>
+
+@{
+    ViewBag.Title = "Select Wholesaler";
+}
+
+<h2>Select a Wholesaler</h2>
+
+<div class="row">
+    @foreach (var wholesaler in Model)
+    {
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">@wholesaler.UserName</h5>
+                    <p class="card-text">
+                        <strong>Email:</strong> @wholesaler.Email<br />
+                        <strong>Phone:</strong> @wholesaler.PhoneNumber
+                    </p>
+                    @Html.ActionLink("Select", "Create", new { wholesalerId = wholesaler.Id }, new { @class = "btn btn-primary" })
+                </div>
+            </div>
+        </div>
+    }
+</div>
