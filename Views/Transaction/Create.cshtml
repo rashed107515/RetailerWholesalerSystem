@@ -6,54 +6,193 @@
     var wholesaler = ViewBag.Wholesaler as RetailerWholesalerSystem.Models.ApplicationUser;
 }
 
-<h2>Create Order from @wholesaler.UserName</h2>
-
-@using (Html.BeginForm())
-{
-    @Html.AntiForgeryToken()
-    @Html.HiddenFor(model => model.WholesalerID)
-
-    <div class="form-horizontal">
-        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
-
-        <div class="row">
-            <div class="col-md-12">
-                @Html.Partial("_ProductList", wholesalerProducts)
-            </div>
-        </div>
-
-        <div class="form-group">
-            <div class="col-md-10">
-                <h3>Total: <span id="orderTotal">$0.00</span></h3>
-            </div>
-        </div>
-
-        <div class="form-group">
-            <div class="col-md-offset-2 col-md-10">
-                <input type="submit" value="Create Order" class="btn btn-success" />
-                @Html.ActionLink("Back to Wholesalers", "Create", null, new { @class = "btn btn-default" })
-            </div>
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h2 class="text-primary">
+                <i class="fa fa-shopping-cart"></i> Create Order from @wholesaler.UserName
+            </h2>
         </div>
     </div>
-}
+
+    @using (Html.BeginForm("Create", "Transaction", FormMethod.Post, new { id = "createOrderForm" }))
+    {
+        @Html.AntiForgeryToken()
+        
+        <!-- Hidden fields -->
+        @Html.HiddenFor(model => model.WholesalerID)
+        @Html.HiddenFor(model => model.RetailerID, new { Value = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value })
+        <input type="hidden" name="WholesalerName" value="@wholesaler.UserName" />
+        <input type="hidden" name="RetailerName" value="@User.Identity.Name" />
+        <input type="hidden" name="PaymentMethod" value="Pending" />
+        
+        <div class="form-horizontal">
+            @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+            <!-- Alert for validation errors -->
+            <div id="validation-alert" class="alert alert-danger" style="display:none;">
+                <i class="fa fa-exclamation-circle"></i> Please select at least one product with quantity greater than 0.
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h4><i class="fa fa-list"></i> Available Products</h4>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Price</th>
+                                    <th>Available Quantity</th>
+                                    <th>Order Quantity</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var product in wholesalerProducts)
+                                {
+                                    <tr>
+                                        <td>@product.Product.Name</td>
+                                        <td>$@product.Price.ToString("0.00")</td>
+                                        <td>@product.AvailableQuantity</td>
+                                        <td>
+                                            <input type="hidden" name="productIds" value="@product.ProductID" />
+                                            <input type="number"
+                                                   name="quantities"
+                                                   class="form-control quantity-input"
+                                                   min="0"
+                                                   max="@product.AvailableQuantity"
+                                                   value="0"
+                                                   data-price="@product.Price"
+                                                   data-min-order="@product.MinimumOrderQuantity" />
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h4><i class="fa fa-clipboard"></i> Order Details</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <h3 class="text-success">Total: <span id="orderTotal">$0.00</span></h3>
+                        </div>
+                    </div>
+
+                    <div class="form-group row">
+                        <label class="control-label col-md-2">Order Notes:</label>
+                        <div class="col-md-10">
+                            <textarea name="Notes" class="form-control" rows="3" placeholder="Enter any additional instructions or comments...">Order placed online</textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group row">
+                <div class="col-md-12">
+                    <button type="submit" id="submitButton" class="btn btn-success btn-lg">
+                        <i class="fa fa-check"></i> Create Order
+                    </button>
+                    <span id="processing-indicator" style="display:none; margin-left:10px;">
+                        <i class="fa fa-spinner fa-spin"></i> Processing...
+                    </span>
+                    @Html.ActionLink("Back to Wholesalers", "SelectWholesaler", null, new { @class = "btn btn-secondary" })
+                </div>
+            </div>
+        </div>
+    }
+</div>
 
 @section Scripts {
     <script>
-        $(document).ready(function() {
-            // Calculate total when quantities change
-            $('.quantity-input').on('change', function() {
-                calculateTotal();
-            });
-
-            function calculateTotal() {
-                var total = 0;
-                $('.quantity-input').each(function() {
-                    var price = parseFloat($(this).data('price'));
-                    var quantity = parseInt($(this).val()) || 0;
-                    total += price * quantity;
-                });
-                $('#orderTotal').text('$' + total.toFixed(2));
+$(document).ready(function() {
+    // Hide validation alert initially
+    $("#validation-alert").hide();
+    
+    // Calculate total when quantities change
+    $('.quantity-input').on('change', function() {
+        // Highlight row when quantity > 0
+        var row = $(this).closest('tr');
+        var quantity = parseInt($(this).val()) || 0;
+        var minOrder = parseInt($(this).data('min-order')) || 0;
+        
+        if (quantity > 0) {
+            row.addClass('table-active');
+            
+            // Validate minimum order quantity
+            if (quantity < minOrder) {
+                $(this).addClass('is-invalid');
+                alert('The minimum order quantity for this product is ' + minOrder);
+                $(this).val(minOrder);
+                quantity = minOrder;
+            } else {
+                $(this).removeClass('is-invalid');
+            }
+        } else {
+            row.removeClass('table-active');
+            $(this).removeClass('is-invalid');
+        }
+        
+        // Recalculate the total
+        calculateTotal();
+    });
+    
+    // Initial calculation
+    calculateTotal();
+    
+    // Form submission handler with improved error handling
+    $("#createOrderForm").on("submit", function(e) {
+        // Hide any previous validation alerts
+        $("#validation-alert").hide();
+        
+        console.log("Form submission attempted at: " + new Date().toISOString());
+        
+        // Check if any products are selected
+        var hasProducts = false;
+        $('.quantity-input').each(function() {
+            var qty = parseInt($(this).val()) || 0;
+            if (qty > 0) {
+                hasProducts = true;
+                return false; // Break out of each loop once we find one
             }
         });
+        
+        if (!hasProducts) {
+            console.log("No products selected - stopping submission");
+            e.preventDefault(); // Stop form submission
+            $("#validation-alert").show();
+            $('html, body').animate({
+                scrollTop: $("#validation-alert").offset().top - 100
+            }, 500);
+            return false;
+        }
+        
+        // Everything validated, proceed with submission
+        console.log("Form submission proceeding to server");
+        
+        // Show processing and disable button
+        $("#submitButton").prop("disabled", true).addClass("disabled");
+        $("#processing-indicator").show();
+        
+        return true; // Continue with form submission
+    });
+});
+
+function calculateTotal() {
+    var total = 0;
+    $('.quantity-input').each(function() {
+        var price = parseFloat($(this).data('price'));
+        var quantity = parseInt($(this).val()) || 0;
+        total += price * quantity;
+    });
+    $('#orderTotal').text('$' + total.toFixed(2));
+}
     </script>
 }

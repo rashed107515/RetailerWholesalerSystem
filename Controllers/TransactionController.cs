@@ -10,12 +10,21 @@ using RetailerWholesalerSystem.Models;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging;
+
 namespace RetailerWholesalerSystem.Controllers
 {
     [Authorize]
     public class TransactionController : Controller
     {
-        private ApplicationDbContext db = new ApplicationDbContext();
+        private readonly ApplicationDbContext db;
+        private readonly ILogger<TransactionController> _logger;
+
+        public TransactionController(ApplicationDbContext context, ILogger<TransactionController> logger)
+        {
+            db = context;
+            _logger = logger;
+        }
 
         // GET: Transaction
         public ActionResult Index()
@@ -40,8 +49,6 @@ namespace RetailerWholesalerSystem.Controllers
         }
 
         // GET: Transaction/Create/5 (5 is wholesaler ID)
-        // GET: Transaction/Create/5
-        // GET: Transaction/Create/5
         public ActionResult Create(string id)
         {
             if (id == null)
@@ -79,38 +86,103 @@ namespace RetailerWholesalerSystem.Controllers
             }
             catch (Exception ex)
             {
-                // Log the exception
-                System.Diagnostics.Debug.WriteLine($"Error: {ex.Message}");
-
-                // Return a simple error
+                _logger.LogError($"Error in Create GET: {ex.Message}");
                 ViewBag.ErrorMessage = "An error occurred while processing your request.";
                 return View("Error");
             }
-        }        // POST: Transaction/Create
+        }
+
+        // POST: Transaction/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
         public ActionResult Create(Transaction transaction, int[] productIds, int[] quantities)
         {
-            if (ModelState.IsValid)
+            try
             {
-                transaction.RetailerID = HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+                _logger.LogInformation("Create POST started");
+                _logger.LogInformation($"Transaction: {transaction?.TransactionID}");
+                _logger.LogInformation($"ProductIds received: {(productIds != null ? string.Join(",", productIds) : "null")}");
+                _logger.LogInformation($"Quantities received: {(quantities != null ? string.Join(",", quantities) : "null")}");
+
+                // Check for required product data
+                if (productIds == null || quantities == null || productIds.Length == 0 || quantities.Length == 0)
+                {
+                    _logger.LogWarning("Create POST: No products were selected");
+                    ModelState.AddModelError("", "Please select at least one product.");
+                    PrepareCreateViewData(transaction.WholesalerID);
+                    return View(transaction);
+                }
+
+                // Clear validation for navigation properties - we'll set these manually
+                ModelState.Remove("Retailer");
+                ModelState.Remove("Wholesaler");
+                ModelState.Remove("TransactionDetails");
+
+                // If ModelState is still invalid, return to the view
+                if (!ModelState.IsValid)
+                {
+                    // Log the remaining validation errors
+                    foreach (var modelStateKey in ModelState.Keys)
+                    {
+                        var modelStateVal = ModelState[modelStateKey];
+                        if (modelStateVal.Errors.Count > 0)
+                        {
+                            _logger.LogWarning($"Error for {modelStateKey}: {modelStateVal.Errors[0].ErrorMessage}");
+                        }
+                    }
+
+                    PrepareCreateViewData(transaction.WholesalerID);
+                    return View(transaction);
+                }
+
+                // Set up relationships manually
                 transaction.Date = DateTime.Now;
                 transaction.Status = TransactionStatus.Pending;
+                transaction.PaymentMethod = transaction.PaymentMethod ?? "Pending";
+                transaction.Notes = transaction.Notes ?? "Order placed online";
 
+                // Fetch the actual entities from the database instead of trying to bind complex objects
+                var retailer = db.Users.Find(transaction.RetailerID);
+                var wholesaler = db.Users.Find(transaction.WholesalerID);
+
+                if (retailer == null || wholesaler == null)
+                {
+                    ModelState.AddModelError("", "Invalid retailer or wholesaler information.");
+                    PrepareCreateViewData(transaction.WholesalerID);
+                    return View(transaction);
+                }
+
+                // Set navigation properties
+                transaction.Retailer = retailer;
+                transaction.Wholesaler = wholesaler;
+
+                // Initialize TransactionDetails collection manually
                 decimal totalAmount = 0;
                 transaction.TransactionDetails = new List<TransactionDetail>();
 
-                // Process each product in the order
-                for (int i = 0; i < productIds.Length; i++)
+                // Process selected products
+                bool atLeastOneProductAdded = false;
+                for (int i = 0; i < Math.Min(productIds.Length, quantities.Length); i++)
                 {
                     if (quantities[i] <= 0) continue;
 
                     var wholesalerProduct = db.WholesalerProducts
                         .Include(wp => wp.Product)
-                        .FirstOrDefault(wp => wp.ProductID == productIds[i] && wp.WholesalerID == transaction.WholesalerID);
+                        .FirstOrDefault(wp => wp.ProductID == productIds[i] &&
+                                              wp.WholesalerID == transaction.WholesalerID);
 
-                    if (wholesalerProduct != null && quantities[i] <= wholesalerProduct.AvailableQuantity)
+                    if (wholesalerProduct != null)
                     {
+                        _logger.LogInformation($"Adding product {productIds[i]} with quantity {quantities[i]}");
+
+                        // Check available quantity
+                        if (quantities[i] > wholesalerProduct.AvailableQuantity)
+                        {
+                            _logger.LogWarning($"Requested quantity {quantities[i]} exceeds available {wholesalerProduct.AvailableQuantity} for product {productIds[i]}");
+                            ModelState.AddModelError("", $"Product '{wholesalerProduct.Product.Name}' only has {wholesalerProduct.AvailableQuantity} available.");
+                            continue;
+                        }
+
                         decimal subtotal = wholesalerProduct.Price * quantities[i];
 
                         // Create transaction detail
@@ -119,7 +191,7 @@ namespace RetailerWholesalerSystem.Controllers
                             ProductID = productIds[i],
                             Quantity = quantities[i],
                             UnitPrice = wholesalerProduct.Price,
-                            Subtotal = subtotal
+                            Product = wholesalerProduct.Product
                         };
 
                         transaction.TransactionDetails.Add(detail);
@@ -127,79 +199,170 @@ namespace RetailerWholesalerSystem.Controllers
 
                         // Update available quantity
                         wholesalerProduct.AvailableQuantity -= quantities[i];
+
+                        atLeastOneProductAdded = true;
+                    }
+                    else
+                    {
+                        _logger.LogWarning($"Product {productIds[i]} not found for wholesaler {transaction.WholesalerID}");
                     }
                 }
 
-                // If no products were selected or all had quantity 0
-                if (transaction.TransactionDetails.Count == 0)
+                // If no products were successfully added
+                if (!atLeastOneProductAdded)
                 {
-                    ModelState.AddModelError("", "Please select at least one product with quantity greater than 0.");
-
-                    // Repopulate required data for the view
-                    var wholesaler = db.Users.Find(transaction.WholesalerID);
-                    var wholesalerProducts = db.WholesalerProducts
-                        .Include(wp => wp.Product)
-                        .Where(wp => wp.WholesalerID == transaction.WholesalerID && wp.AvailableQuantity > 0)
-                        .ToList();
-
-                    ViewBag.WholesalerProducts = wholesalerProducts;
-                    ViewBag.Wholesaler = wholesaler;
-
+                    ModelState.AddModelError("", "No valid products were added to the order.");
+                    _logger.LogWarning("Create POST: No valid products added");
+                    PrepareCreateViewData(transaction.WholesalerID);
                     return View(transaction);
                 }
 
                 transaction.TotalAmount = totalAmount;
 
-                db.Transactions.Add(transaction);
-                db.SaveChanges();
+                try
+                {
+                    _logger.LogInformation("Adding transaction to database");
+                    db.Transactions.Add(transaction);
+                    db.SaveChanges();
+                    _logger.LogInformation($"Transaction {transaction.TransactionID} created successfully");
 
-                return RedirectToAction("Confirmation", new { id = transaction.TransactionID });
+                    TempData["SuccessMessage"] = "Order created successfully!";
+                    return RedirectToAction(nameof(Confirmation), new { id = transaction.TransactionID });
+                }
+                catch (Exception dbEx)
+                {
+                    _logger.LogError($"Database error in Create POST: {dbEx.Message}");
+                    if (dbEx.InnerException != null)
+                    {
+                        _logger.LogError($"Inner exception: {dbEx.InnerException.Message}");
+                    }
+                    ModelState.AddModelError("", "A database error occurred. Please try again.");
+                    PrepareCreateViewData(transaction.WholesalerID);
+                    return View(transaction);
+                }
             }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error in Create POST: {ex.Message}");
+                if (ex.InnerException != null)
+                {
+                    _logger.LogError($"Inner exception: {ex.InnerException.Message}");
+                }
+                _logger.LogError($"Stack trace: {ex.StackTrace}");
 
-            // If we got this far, something failed, redisplay form
-            var wholesalerForError = db.Users.Find(transaction.WholesalerID);
-            var productsForError = db.WholesalerProducts
+                ModelState.AddModelError("", "An error occurred while processing the transaction. Please try again.");
+                PrepareCreateViewData(transaction.WholesalerID);
+                return View(transaction);
+            }
+        }
+        // Helper method to repopulate the Create view data
+        private void PrepareCreateViewData(string wholesalerId)
+        {
+            var wholesaler = db.Users.Find(wholesalerId);
+            var wholesalerProducts = db.WholesalerProducts
                 .Include(wp => wp.Product)
-                .Where(wp => wp.WholesalerID == transaction.WholesalerID && wp.AvailableQuantity > 0)
+                .Where(wp => wp.WholesalerID == wholesalerId && wp.AvailableQuantity > 0)
                 .ToList();
 
-            ViewBag.WholesalerProducts = productsForError;
-            ViewBag.Wholesaler = wholesalerForError;
-
-            return View(transaction);
+            ViewBag.WholesalerProducts = wholesalerProducts;
+            ViewBag.Wholesaler = wholesaler;
         }
 
         // GET: Transaction/Confirmation/5
-        public ActionResult Confirmation(int? id)
+        //public ActionResult Confirmation(int? id)
+        //{
+        //    if (id == null)
+        //    {
+        //        _logger.LogWarning("Confirmation: id is null");
+        //        return BadRequest();
+        //    }
+
+        //    try
+        //    {
+        //        var transaction = db.Transactions
+        //            .Include(t => t.Retailer)
+        //            .Include(t => t.Wholesaler)
+        //            .Include(t => t.TransactionDetails)
+        //            .ThenInclude(td => td.Product)
+        //            .FirstOrDefault(t => t.TransactionID == id);
+
+        //        if (transaction == null)
+        //        {
+        //            _logger.LogWarning($"Confirmation: Transaction {id} not found");
+        //            return NotFound();
+        //        }
+
+        //        // Security check - make sure the current user is either the retailer or wholesaler
+        //        string currentUserId = HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        //        if (transaction.RetailerID != currentUserId && transaction.WholesalerID != currentUserId)
+        //        {
+        //            _logger.LogWarning($"Confirmation: Unauthorized access to transaction {id} by user {currentUserId}");
+        //            return Unauthorized();
+        //        }
+
+        //        _logger.LogInformation($"Showing confirmation for transaction {id}");
+        //        return View(transaction);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError($"Error in Confirmation: {ex.Message}");
+        //        ViewBag.ErrorMessage = "An error occurred while retrieving the transaction details.";
+        //        return View("Error");
+        //    }
+        //}
+
+        // Other actions remain the same...
+
+        // GET: Transaction/Details/5
+        // GET: Transaction/Confirmation/5
+        public ActionResult Confirmation(string id)
         {
-            if (id == null)
+            if (string.IsNullOrEmpty(id))
             {
+                _logger.LogWarning("Confirmation: id is null or empty");
                 return BadRequest();
             }
 
-            var transaction = db.Transactions
-                .Include(t => t.Retailer)
-                .Include(t => t.Wholesaler)
-                .Include(t => t.TransactionDetails)
-                .Include("TransactionDetails.Product")
-                .FirstOrDefault(t => t.TransactionID == id);
-
-            if (transaction == null)
+            try
             {
-                return NotFound();
-            }
+                // Parse the ID - assuming TransactionID is an int
+                if (!int.TryParse(id, out int transactionId))
+                {
+                    _logger.LogWarning($"Confirmation: Invalid transaction ID format: {id}");
+                    return BadRequest("Invalid transaction ID format");
+                }
 
-            // Security check - make sure the current user is either the retailer or wholesaler
-            string currentUserId = HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (transaction.RetailerID != currentUserId && transaction.WholesalerID != currentUserId)
+                var transaction = db.Transactions
+                    .Include(t => t.Retailer)
+                    .Include(t => t.Wholesaler)
+                    .Include(t => t.TransactionDetails)
+                        .ThenInclude(td => td.Product)
+                    .FirstOrDefault(t => t.TransactionID == transactionId);
+
+                if (transaction == null)
+                {
+                    _logger.LogWarning($"Confirmation: Transaction {id} not found");
+                    return NotFound();
+                }
+
+                // Security check - make sure the current user is either the retailer or wholesaler
+                string currentUserId = HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (transaction.RetailerID != currentUserId && transaction.WholesalerID != currentUserId)
+                {
+                    _logger.LogWarning($"Confirmation: Unauthorized access to transaction {id} by user {currentUserId}");
+                    return Unauthorized();
+                }
+
+                _logger.LogInformation($"Showing confirmation for transaction {id}");
+                return View(transaction);
+            }
+            catch (Exception ex)
             {
-                return Unauthorized();
+                _logger.LogError($"Error in Confirmation: {ex.Message}");
+                ViewBag.ErrorMessage = "An error occurred while retrieving the transaction details.";
+                return View("Error");
             }
-
-            return View(transaction);
         }
-
-        // GET: Transaction/Details/5
         public ActionResult Details(int? id)
         {
             if (id == null)
@@ -211,7 +374,7 @@ namespace RetailerWholesalerSystem.Controllers
                 .Include(t => t.Retailer)
                 .Include(t => t.Wholesaler)
                 .Include(t => t.TransactionDetails)
-                .Include("TransactionDetails.Product")
+                .ThenInclude(td => td.Product)
                 .FirstOrDefault(t => t.TransactionID == id);
 
             if (transaction == null)
@@ -241,7 +404,7 @@ namespace RetailerWholesalerSystem.Controllers
                 .Include(t => t.Retailer)
                 .Include(t => t.Wholesaler)
                 .Include(t => t.TransactionDetails)
-                .Include("TransactionDetails.Product")
+                .ThenInclude(td => td.Product)
                 .FirstOrDefault(t => t.TransactionID == id);
 
             if (transaction == null)
@@ -265,7 +428,6 @@ namespace RetailerWholesalerSystem.Controllers
             return View(transaction);
         }
 
-        // POST: Transaction/UpdateStatus/5
         [HttpPost]
         [ValidateAntiForgeryToken]
         public ActionResult UpdateStatus(int id, TransactionStatus status, string paymentMethod, string notes)
@@ -286,8 +448,8 @@ namespace RetailerWholesalerSystem.Controllers
             if (transaction.Status == TransactionStatus.Pending)
             {
                 transaction.Status = status;
-                transaction.PaymentMethod = paymentMethod;
-                transaction.Notes = notes;
+                transaction.PaymentMethod = paymentMethod ?? transaction.PaymentMethod; // Keep existing if null
+                transaction.Notes = notes ?? string.Empty; // Never allow null notes
                 db.SaveChanges();
 
                 TempData["SuccessMessage"] = "Transaction status has been updated successfully.";
@@ -299,7 +461,6 @@ namespace RetailerWholesalerSystem.Controllers
 
             return RedirectToAction("Details", new { id = transaction.TransactionID });
         }
-
         // GET: Transaction/Receipt/5
         public ActionResult Receipt(int? id)
         {
@@ -312,7 +473,7 @@ namespace RetailerWholesalerSystem.Controllers
                 .Include(t => t.Retailer)
                 .Include(t => t.Wholesaler)
                 .Include(t => t.TransactionDetails)
-                .Include("TransactionDetails.Product")
+                .ThenInclude(td => td.Product)
                 .FirstOrDefault(t => t.TransactionID == id);
 
             if (transaction == null)
@@ -330,6 +491,52 @@ namespace RetailerWholesalerSystem.Controllers
             return View(transaction);
         }
 
+
+        // GET: Transaction/PrintReceipt/5
+        public ActionResult PrintReceipt(string id)
+        {
+            try
+            {
+                _logger.LogInformation($"PrintReceipt started for transaction ID: {id}");
+
+                // If TransactionID in the database is an int
+                if (!int.TryParse(id, out int transactionIdInt))
+                {
+                    _logger.LogWarning($"PrintReceipt: Invalid transaction ID format: {id}");
+                    return BadRequest("Invalid transaction ID format");
+                }
+
+                var transaction = db.Transactions
+                    .Include(t => t.Retailer)
+                    .Include(t => t.Wholesaler)
+                    .Include(t => t.TransactionDetails)
+                        .ThenInclude(td => td.Product)
+                    .FirstOrDefault(t => t.TransactionID == transactionIdInt);
+
+                if (transaction == null)
+                {
+                    _logger.LogWarning($"PrintReceipt: Transaction {id} not found");
+                    return NotFound();
+                }
+
+                // Check if current user has access to this receipt
+                var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (transaction.RetailerID != currentUserId && transaction.WholesalerID != currentUserId && !User.IsInRole("Admin"))
+                {
+                    _logger.LogWarning($"PrintReceipt: Unauthorized access attempt to transaction {id} by user {currentUserId}");
+                    return Forbid();
+                }
+
+                _logger.LogInformation($"PrintReceipt: Rendering receipt for transaction {id}");
+                return View(transaction);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error in PrintReceipt: {ex.Message}");
+                return RedirectToAction(nameof(Index));
+            }
+        }
+    
         protected override void Dispose(bool disposing)
         {
             if (disposing)

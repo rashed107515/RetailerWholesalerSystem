@@ -58,6 +58,16 @@ namespace RetailerWholesalerSystem.Models
                 .WithMany(u => u.WholesalerTransactions)
                 .HasForeignKey(t => t.WholesalerID)
                 .OnDelete(DeleteBehavior.Restrict);
+
+
+            // Add indexes on commonly queried fields
+            modelBuilder.Entity<Product>().HasIndex(p => p.Name);
+            modelBuilder.Entity<Product>().HasIndex(p => p.CategoryID);
+            modelBuilder.Entity<Transaction>().HasIndex(t => t.Date);
+            modelBuilder.Entity<Transaction>().HasIndex(t => t.RetailerID);
+            modelBuilder.Entity<Transaction>().HasIndex(t => t.WholesalerID);
+            modelBuilder.Entity<TransactionDetail>().HasIndex(td => td.ProductID);
+
         }
     }
 }
