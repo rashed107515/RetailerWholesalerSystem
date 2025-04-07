@@ -315,29 +315,71 @@ namespace RetailerWholesalerSystem.Controllers
 
         // GET: Transaction/Details/5
         // GET: Transaction/Confirmation/5
-        public ActionResult Confirmation(string id)
+        //public ActionResult Confirmation(string id)
+        //{
+        //    if (string.IsNullOrEmpty(id))
+        //    {
+        //        _logger.LogWarning("Confirmation: id is null or empty");
+        //        return BadRequest();
+        //    }
+
+        //    try
+        //    {
+        //        // Parse the ID - assuming TransactionID is an int
+        //        if (!int.TryParse(id, out int transactionId))
+        //        {
+        //            _logger.LogWarning($"Confirmation: Invalid transaction ID format: {id}");
+        //            return BadRequest("Invalid transaction ID format");
+        //        }
+
+        //        var transaction = db.Transactions
+        //            .Include(t => t.Retailer)
+        //            .Include(t => t.Wholesaler)
+        //            .Include(t => t.TransactionDetails)
+        //                .ThenInclude(td => td.Product)
+        //            .FirstOrDefault(t => t.TransactionID == transactionId);
+
+        //        if (transaction == null)
+        //        {
+        //            _logger.LogWarning($"Confirmation: Transaction {id} not found");
+        //            return NotFound();
+        //        }
+
+        //        // Security check - make sure the current user is either the retailer or wholesaler
+        //        string currentUserId = HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        //        if (transaction.RetailerID != currentUserId && transaction.WholesalerID != currentUserId)
+        //        {
+        //            _logger.LogWarning($"Confirmation: Unauthorized access to transaction {id} by user {currentUserId}");
+        //            return Unauthorized();
+        //        }
+
+        //        _logger.LogInformation($"Showing confirmation for transaction {id}");
+        //        return View(transaction);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError($"Error in Confirmation: {ex.Message}");
+        //        ViewBag.ErrorMessage = "An error occurred while retrieving the transaction details.";
+        //        return View("Error");
+        //    }
+        //}
+
+        public ActionResult Confirmation(int id)
         {
-            if (string.IsNullOrEmpty(id))
+            if (id <= 0)
             {
-                _logger.LogWarning("Confirmation: id is null or empty");
+                _logger.LogWarning("Confirmation: Invalid id");
                 return BadRequest();
             }
 
             try
             {
-                // Parse the ID - assuming TransactionID is an int
-                if (!int.TryParse(id, out int transactionId))
-                {
-                    _logger.LogWarning($"Confirmation: Invalid transaction ID format: {id}");
-                    return BadRequest("Invalid transaction ID format");
-                }
-
                 var transaction = db.Transactions
                     .Include(t => t.Retailer)
                     .Include(t => t.Wholesaler)
                     .Include(t => t.TransactionDetails)
                         .ThenInclude(td => td.Product)
-                    .FirstOrDefault(t => t.TransactionID == transactionId);
+                    .FirstOrDefault(t => t.TransactionID == id);
 
                 if (transaction == null)
                 {
@@ -345,11 +387,11 @@ namespace RetailerWholesalerSystem.Controllers
                     return NotFound();
                 }
 
-                // Security check - make sure the current user is either the retailer or wholesaler
+                // Security check - make sure current user is either retailer or wholesaler
                 string currentUserId = HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
                 if (transaction.RetailerID != currentUserId && transaction.WholesalerID != currentUserId)
                 {
-                    _logger.LogWarning($"Confirmation: Unauthorized access to transaction {id} by user {currentUserId}");
+                    _logger.LogWarning($"Unauthorized access to transaction {id} by user {currentUserId}");
                     return Unauthorized();
                 }
 
