@@ -33,5 +33,7 @@ namespace RetailerWholesalerSystem.Models
         public virtual ICollection<Transaction> RetailerTransactions { get; set; }
         public virtual ICollection<Transaction> WholesalerTransactions { get; set; }
         public virtual ICollection<WholesalerProduct> WholesalerProducts { get; set; }
+        public virtual ICollection<Order> RetailerOrders { get; set; }
+        public virtual ICollection<Order> WholesalerOrders { get; set; }
     }
 }

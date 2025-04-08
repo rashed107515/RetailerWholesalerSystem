@@ -9,46 +9,239 @@
             <h2>Browse Wholesaler Products</h2>
         </div>
         <div class="col-md-4 text-right">
-            <a asp-controller="Product" asp-action="IndexRetailer" class="btn btn-primary">My Products</a>
+            <a asp-controller="Product" asp-action="IndexRetailer" class="btn btn-primary">
+                <i class="fa fa-boxes"></i> My Products
+            </a>
+            <a asp-controller="Cart" asp-action="Index" class="btn btn-success">
+                <i class="fa fa-shopping-cart"></i> View Cart
+                @if (ViewBag.CartItemCount > 0)
+                {
+                    <span class="badge badge-light ml-1">@ViewBag.CartItemCount</span>
+                }
+            </a>
+        </div>
+    </div>
+
+    <!-- Search and Filter Section -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form id="searchFilterForm" method="get" asp-action="BrowseWholesalerProducts">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="searchQuery">Search Products</label>
+                            <input type="text" id="searchQuery" name="searchQuery" class="form-control" 
+                                   placeholder="Search by name or description" value="@ViewBag.CurrentSearchQuery">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="categoryFilter">Category</label>
+                            <select id="categoryFilter" name="categoryId" class="form-control">
+                                <option value="">All Categories</option>
+                                @foreach (var category in ViewBag.Categories)
+                                {
+                                    <option value="@category.CategoryID"
+                                            selected="@(ViewBag.CurrentCategoryId == category.CategoryID)">
+                                        @category.Name
+                                    </option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="sortOrder">Sort By</label>
+                            <select id="sortOrder" name="sortOrder" class="form-control">
+                                <option value="nameAsc" selected="@(ViewBag.CurrentSortOrder == "nameAsc")">Name (A-Z)</option>
+                                <option value="nameDesc" selected="@(ViewBag.CurrentSortOrder == "nameDesc")">Name (Z-A)</option>
+                                <option value="priceAsc" selected="@(ViewBag.CurrentSortOrder == "priceAsc")">Price (Low-High)</option>
+                                <option value="priceDesc" selected="@(ViewBag.CurrentSortOrder == "priceDesc")">Price (High-Low)</option>
+                                <option value="quantityAsc" selected="@(ViewBag.CurrentSortOrder == "quantityAsc")">Quantity (Low-High)</option>
+                                <option value="quantityDesc" selected="@(ViewBag.CurrentSortOrder == "quantityDesc")">Quantity (High-Low)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary btn-block">
+                            <i class="fa fa-search"></i> Apply
+                        </button>
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
 
     @if (Model.Any())
     {
-        <div class="row">
-            @foreach (var item in Model)
+        <!-- Wholesaler Filter Tabs -->
+        <div class="mb-4">
+            <ul class="nav nav-tabs" id="wholesalerTabs" role="tablist">
+                <li class="nav-item">
+                    <a class="nav-link active" id="all-tab" data-toggle="tab" href="#all" role="tab" 
+                       aria-controls="all" aria-selected="true">All Wholesalers</a>
+                </li>
+                @foreach (var wholesaler in ViewBag.Wholesalers)
+                {
+                    <li class="nav-item">
+                        <a class="nav-link" id="wholesaler-@wholesaler.Id-tab" data-toggle="tab" 
+                           href="#wholesaler-@wholesaler.Id" role="tab" 
+                           aria-controls="wholesaler-@wholesaler.Id" aria-selected="false">
+                            @wholesaler.BusinessName
+                        </a>
+                    </li>
+                }
+            </ul>
+        </div>
+
+        <div class="tab-content" id="wholesalerTabsContent">
+            <!-- All Wholesalers Tab -->
+            <div class="tab-pane fade show active" id="all" role="tabpanel" aria-labelledby="all-tab">
+                <div class="row">
+                    @foreach (var item in Model)
+                    {
+                        <div class="col-md-4 mb-4">
+                            <div class="card h-100 product-card">
+                                @if (!string.IsNullOrEmpty(item.Product.ImageURL))
+                                {
+                                    <img src="@item.Product.ImageURL" class="card-img-top" alt="@item.Product.Name" 
+                                         style="height: 200px; object-fit: cover;">
+                                }
+                                else
+                                {
+                                    <div class="bg-light text-center py-5">
+                                        <i class="fa fa-image fa-4x text-muted"></i>
+                                    </div>
+                                }
+                                <div class="card-body">
+                                    <h5 class="card-title">@item.Product.Name</h5>
+                                    <p class="card-text">@(item.Product.Description?.Length > 100 ? 
+                                        item.Product.Description.Substring(0, 100) + "..." : item.Product.Description)</p>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="badge badge-primary">@item.Product.Category.Name</span>
+                                        <span class="font-weight-bold text-success">@item.Price.ToString("C")</span>
+                                    </div>
+                                    <p class="card-text mt-2">
+                                        <small class="text-muted">
+                                            <i class="fa fa-store"></i> @item.Wholesaler.BusinessName
+                                        </small><br>
+                                        <small class="text-muted">
+                                            <i class="fa fa-cubes"></i> Available: @item.AvailableQuantity
+                                        </small><br>
+                                        <small class="text-muted">
+                                            <i class="fa fa-cube"></i> Min Order: @item.MinimumOrderQuantity
+                                        </small>
+                                    </p>
+                                </div>
+                                <div class="card-footer bg-white border-top-0">
+                                    <div class="input-group mb-2">
+                                        <div class="input-group-prepend">
+                                            <button class="btn btn-outline-secondary decrease-quantity" type="button" 
+                                                    data-product-id="@item.WholesalerProductID">-</button>
+                                        </div>
+                                        <input type="number" class="form-control text-center product-quantity" 
+                                               id="quantity-@item.WholesalerProductID" value="@item.MinimumOrderQuantity" 
+                                               min="@item.MinimumOrderQuantity" max="@item.AvailableQuantity">
+                                        <div class="input-group-append">
+                                            <button class="btn btn-outline-secondary increase-quantity" type="button" 
+                                                    data-product-id="@item.WholesalerProductID">+</button>
+                                        </div>
+                                    </div>
+                                    <div class="btn-group btn-block">
+                                        <a asp-action="Details" asp-route-id="@item.ProductID" class="btn btn-outline-primary">
+                                            <i class="fa fa-info-circle"></i> Details
+                                        </a>
+                                        <button type="button" class="btn btn-success add-to-cart" 
+                                                data-product-id="@item.WholesalerProductID">
+                                            <i class="fa fa-cart-plus"></i> Add to Cart
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Individual Wholesaler Tabs -->
+            @foreach (var wholesaler in ViewBag.Wholesalers)
             {
-                <div class="col-md-4 mb-4">
-                    <div class="card h-100">
-                        @if (!string.IsNullOrEmpty(item.Product.ImageURL))
+                <div class="tab-pane fade" id="wholesaler-@wholesaler.Id" role="tabpanel" 
+                     aria-labelledby="wholesaler-@wholesaler.Id-tab">
+                    <div class="row">
+                        @{
+                            var wholesalerProducts = Model.Where(p => p.WholesalerID == wholesaler.Id).ToList();
+                        }
+                        @if (wholesalerProducts.Any())
                         {
-                            <img src="@item.Product.ImageURL" class="card-img-top" alt="@item.Product.Name" style="height: 200px; object-fit: cover;">
+                            @foreach (var item in wholesalerProducts)
+                            {
+                                <div class="col-md-4 mb-4">
+                                    <div class="card h-100 product-card">
+                                        @if (!string.IsNullOrEmpty(item.Product.ImageURL))
+                                        {
+                                            <img src="@item.Product.ImageURL" class="card-img-top" alt="@item.Product.Name" 
+                                                 style="height: 200px; object-fit: cover;">
+                                        }
+                                        else
+                                        {
+                                            <div class="bg-light text-center py-5">
+                                                <i class="fa fa-image fa-4x text-muted"></i>
+                                            </div>
+                                        }
+                                        <div class="card-body">
+                                            <h5 class="card-title">@item.Product.Name</h5>
+                                            <p class="card-text">@(item.Product.Description?.Length > 100 ? 
+                                                item.Product.Description.Substring(0, 100) + "..." : item.Product.Description)</p>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <span class="badge badge-primary">@item.Product.Category.Name</span>
+                                                <span class="font-weight-bold text-success">@item.Price.ToString("C")</span>
+                                            </div>
+                                            <p class="card-text mt-2">
+                                                <small class="text-muted">
+                                                    <i class="fa fa-cubes"></i> Available: @item.AvailableQuantity
+                                                </small><br>
+                                                <small class="text-muted">
+                                                    <i class="fa fa-cube"></i> Min Order: @item.MinimumOrderQuantity
+                                                </small>
+                                            </p>
+                                        </div>
+                                        <div class="card-footer bg-white border-top-0">
+                                            <div class="input-group mb-2">
+                                                <div class="input-group-prepend">
+                                                    <button class="btn btn-outline-secondary decrease-quantity" type="button" 
+                                                            data-product-id="@item.WholesalerProductID">-</button>
+                                                </div>
+                                                <input type="number" class="form-control text-center product-quantity" 
+                                                       id="quantity-@item.WholesalerProductID" value="@item.MinimumOrderQuantity" 
+                                                       min="@item.MinimumOrderQuantity" max="@item.AvailableQuantity">
+                                                <div class="input-group-append">
+                                                    <button class="btn btn-outline-secondary increase-quantity" type="button" 
+                                                            data-product-id="@item.WholesalerProductID">+</button>
+                                                </div>
+                                            </div>
+                                            <div class="btn-group btn-block">
+                                                <a asp-action="Details" asp-route-id="@item.ProductID" class="btn btn-outline-primary">
+                                                    <i class="fa fa-info-circle"></i> Details
+                                                </a>
+                                                <button type="button" class="btn btn-success add-to-cart" 
+                                                        data-product-id="@item.WholesalerProductID">
+                                                    <i class="fa fa-cart-plus"></i> Add to Cart
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
                         }
                         else
                         {
-                            <div class="bg-light text-center py-5">
-                                <i class="fa fa-image fa-4x text-muted"></i>
+                            <div class="col-12">
+                                <div class="alert alert-info">
+                                    <p>No products available from this wholesaler that match your criteria.</p>
+                                </div>
                             </div>
                         }
-                        <div class="card-body">
-                            <h5 class="card-title">@item.Product.Name</h5>
-                            <p class="card-text">@item.Product.Description</p>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="badge badge-primary">@item.Product.Category</span>
-                                <span class="font-weight-bold text-success">@item.Price.ToString("C")</span>
-                            </div>
-                            <p class="card-text mt-2">
-                                <small class="text-muted">Sold by: @item.Wholesaler.BusinessName</small><br>
-                                <small class="text-muted">Available: @item.AvailableQuantity</small><br>
-                                <small class="text-muted">Min Order: @item.MinimumOrderQuantity</small>
-                            </p>
-                        </div>
-                        <div class="card-footer bg-white border-top-0">
-                            <div class="btn-group btn-block">
-                                <a asp-action="Details" asp-route-id="@item.ProductID" class="btn btn-outline-primary">Details</a>
-                                <a asp-controller="Transaction" asp-action="AddToCart" asp-route-id="@item.WholesalerProductID" class="btn btn-success">Add to Cart</a>
-                            </div>
-                        </div>
                     </div>
                 </div>
             }
@@ -57,7 +250,86 @@
     else
     {
         <div class="alert alert-info">
-            <p>No products are available from wholesalers at this time.</p>
+            <p>No products are available from wholesalers that match your criteria.</p>
         </div>
     }
 </div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Handle increase/decrease quantity buttons
+            $('.increase-quantity').click(function () {
+                const productId = $(this).data('product-id');
+                const input = $('#quantity-' + productId);
+                const currentValue = parseInt(input.val());
+                const max = parseInt(input.attr('max'));
+                
+                if (currentValue < max) {
+                    input.val(currentValue + 1);
+                }
+            });
+            
+            $('.decrease-quantity').click(function () {
+                const productId = $(this).data('product-id');
+                const input = $('#quantity-' + productId);
+                const currentValue = parseInt(input.val());
+                const min = parseInt(input.attr('min'));
+                
+                if (currentValue > min) {
+                    input.val(currentValue - 1);
+                }
+            });
+            
+            // Handle add to cart buttons
+            $('.add-to-cart').click(function () {
+                const productId = $(this).data('product-id');
+                const quantity = $('#quantity-' + productId).val();
+                
+                $.ajax({
+                    url: '@Url.Action("AddToCart", "Cart")',
+                    type: 'POST',
+                    data: {
+                        wholesalerProductId: productId,
+                        quantity: quantity
+                    },
+                    success: function (result) {
+                        if (result.success) {
+                            // Update cart count in the navbar
+                            $('.cart-count').text(result.cartCount);
+                            
+                            // Show success toast
+                            showToast('Success', 'Product added to cart', 'success');
+                        } else {
+                            showToast('Error', result.message, 'error');
+                        }
+                    },
+                    error: function () {
+                        showToast('Error', 'Failed to add product to cart', 'error');
+                    }
+                });
+            });
+            
+            // Toast function for notifications
+            function showToast(title, message, type) {
+                $('.toast-container').remove(); // Remove existing toasts
+                
+                const toastHtml = `
+                    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+                        <div class="toast align-items-center text-white bg-${type === 'success' ? 'success' : 'danger'} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                            <div class="d-flex">
+                                <div class="toast-body">
+                                    <strong>${title}:</strong> ${message}
+                                </div>
+                                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                $('body').append(toastHtml);
+                $('.toast').toast('show');
+            }
+        });
+    </script>
+}

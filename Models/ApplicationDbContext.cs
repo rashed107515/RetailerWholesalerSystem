@@ -41,6 +41,10 @@ namespace RetailerWholesalerSystem.Models
         public DbSet<TransactionDetail> TransactionDetails { get; set; }
         public DbSet<RetailerProduct> RetailerProducts { get; set; }
         public DbSet<Category> Categories { get; set; }
+        public DbSet<Order> Orders { get; set; }
+        public DbSet<OrderItem> OrderItems { get; set; }
+        public DbSet<CartItem> CartItems { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -58,8 +62,29 @@ namespace RetailerWholesalerSystem.Models
                 .WithMany(u => u.WholesalerTransactions)
                 .HasForeignKey(t => t.WholesalerID)
                 .OnDelete(DeleteBehavior.Restrict);
+            // Configure relationship between Order and ApplicationUser (as Retailer)
+            modelBuilder.Entity<Order>()
+                .HasOne(o => o.Retailer)
+                .WithMany(u => u.RetailerOrders)
+                .HasForeignKey(o => o.RetailerID)
+                .OnDelete(DeleteBehavior.Restrict);
 
+            // Configure relationship between Order and ApplicationUser (as Wholesaler)
+            modelBuilder.Entity<Order>()
+                .HasOne(o => o.Wholesaler)
+                .WithMany(u => u.WholesalerOrders)
+                .HasForeignKey(o => o.WholesalerID)
+                .OnDelete(DeleteBehavior.Restrict);
 
+            modelBuilder.Entity<Product>()
+    .Property(p => p.DefaultPrice)
+    .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<RetailerProduct>()
+                .Property(p => p.Price)
+                .HasColumnType("decimal(18,2)");
+
+            // Add similar configurations for other decimal properties
             // Add indexes on commonly queried fields
             modelBuilder.Entity<Product>().HasIndex(p => p.Name);
             modelBuilder.Entity<Product>().HasIndex(p => p.CategoryID);

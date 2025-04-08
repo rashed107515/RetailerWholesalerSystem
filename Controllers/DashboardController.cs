@@ -42,21 +42,31 @@ namespace RetailerWholesalerSystem.Controllers
             {
                 // For Retailer: Get all transactions where this user is the retailer
                 var retailerTransactions = db.Transactions
-                    .Where(t => t.RetailerID == userId)
-                    .OrderByDescending(t => t.Date)
-                    .ToList();
+    .Include(t => t.Retailer)
+    .Include(t => t.Wholesaler)
+    .Where(t => t.RetailerID == userId)
+    .OrderByDescending(t => t.Date)
+    .ToList();
 
-                dashboardViewModel.TotalSpent = retailerTransactions.Sum(t => t.TotalAmount);
+                // Total spent should only include paid transactions
+                dashboardViewModel.TotalSpent = retailerTransactions
+                    .Where(t => t.Status == TransactionStatus.Paid)
+                    .Sum(t => t.TotalAmount);
+
+                // Outstanding amount is the sum of pending transactions
                 dashboardViewModel.OutstandingAmount = retailerTransactions
                     .Where(t => t.Status == TransactionStatus.Pending)
                     .Sum(t => t.TotalAmount);
+
+                // Count of pending transactions
                 dashboardViewModel.PendingTransactions = retailerTransactions
                     .Count(t => t.Status == TransactionStatus.Pending);
+
                 dashboardViewModel.RecentTransactions = retailerTransactions.Take(5).ToList();
 
-                // Get monthly spending
+                // Get monthly spending - only count paid transactions for the chart
                 var monthlySummary = retailerTransactions
-                    .Where(t => t.Date >= startDate && t.Date <= endDate)
+                    .Where(t => t.Date >= startDate && t.Date <= endDate && t.Status == TransactionStatus.Paid)
                     .GroupBy(t => new { Month = t.Date.Month, Year = t.Date.Year })
                     .Select(g => new
                     {
@@ -74,21 +84,31 @@ namespace RetailerWholesalerSystem.Controllers
             {
                 // For Wholesaler: Get all transactions where this user is the wholesaler
                 var wholesalerTransactions = db.Transactions
-                    .Where(t => t.WholesalerID == userId)
-                    .OrderByDescending(t => t.Date)
-                    .ToList();
+     .Include(t => t.Retailer)
+     .Include(t => t.Wholesaler)
+     .Where(t => t.WholesalerID == userId)
+     .OrderByDescending(t => t.Date)
+     .ToList();
 
-                dashboardViewModel.TotalEarned = wholesalerTransactions.Sum(t => t.TotalAmount);
+                // Total earned should only include paid transactions
+                dashboardViewModel.TotalEarned = wholesalerTransactions
+                    .Where(t => t.Status == TransactionStatus.Paid)
+                    .Sum(t => t.TotalAmount);
+
+                // Outstanding amount is the sum of pending transactions
                 dashboardViewModel.OutstandingAmount = wholesalerTransactions
                     .Where(t => t.Status == TransactionStatus.Pending)
                     .Sum(t => t.TotalAmount);
+
+                // Count of pending transactions
                 dashboardViewModel.PendingTransactions = wholesalerTransactions
                     .Count(t => t.Status == TransactionStatus.Pending);
+
                 dashboardViewModel.RecentTransactions = wholesalerTransactions.Take(5).ToList();
 
-                // Get monthly earnings
+                // Get monthly earnings - only count paid transactions for the chart
                 var monthlySummary = wholesalerTransactions
-                    .Where(t => t.Date >= startDate && t.Date <= endDate)
+                    .Where(t => t.Date >= startDate && t.Date <= endDate && t.Status == TransactionStatus.Paid)
                     .GroupBy(t => new { Month = t.Date.Month, Year = t.Date.Year })
                     .Select(g => new
                     {

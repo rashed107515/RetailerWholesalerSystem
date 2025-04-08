@@ -1,0 +1,61 @@
+﻿@model IEnumerable<RetailerWholesalerSystem.Models.RetailerProduct>
+
+@{
+    ViewBag.Title = "My Retail Inventory";
+}
+
+<div class="container">
+    <h2>My Retail Inventory</h2>
+    <p>
+        @Html.ActionLink("Browse Products to Add", "BrowseWholesalerProducts", null, new { @class = "btn btn-primary" })
+    </p>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info">
+            <p>You don't have any products in your inventory yet. Browse available products to start building your inventory.</p>
+        </div>
+    }
+    else
+    {
+        <table class="table table-striped table-bordered">
+            <thead>
+                <tr>
+                    <th>Image</th>
+                    <th>Product</th>
+                    <th>Description</th>
+                    <th>Category</th>
+                    <th>Your Price</th>
+                    <th>Stock</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>
+                            @if (!string.IsNullOrEmpty(item.Product.ImageURL))
+                            {
+                                <img src="@item.Product.ImageURL" alt="@item.Product.Name" style="max-width: 100px; max-height: 100px;" />
+                            }
+                            else
+                            {
+                                <span>No image</span>
+                            }
+                        </td>
+                        <td>@item.Product.Name</td>
+                        <td>@item.Product.Description</td>
+                        <td>@(item.Product.Category != null ? item.Product.Category.Name : "N/A")</td>
+                        <td>@string.Format("{0:C}", item.Price)</td>
+                        <td>@item.StockQuantity</td>
+                        <td>
+                            @Html.ActionLink("Edit", "EditRetailerProduct", new { id = item.RetailerProductID }, new { @class = "btn btn-sm btn-primary" })
+                            @Html.ActionLink("Delete", "DeleteRetailerProduct", new { id = item.RetailerProductID }, new { @class = "btn btn-sm btn-danger" })
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>

@@ -1,13 +1,15 @@
 ﻿@model IEnumerable<RetailerWholesalerSystem.Models.ApplicationUser>
+@using System.Security.Claims
 
 @{
     ViewBag.Title = "Select Wholesaler";
+    var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 }
 
 <h2>Select a Wholesaler</h2>
 
 <div class="row">
-    @foreach (var wholesaler in Model)
+    @foreach (var wholesaler in Model.Where(w => w.Id != currentUserId))
     {
         <div class="col-md-4 mb-4">
             <div class="card">
