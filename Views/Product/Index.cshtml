@@ -1,143 +1,192 @@
-﻿@* @{ *@
-@*     ViewData["Title"] = "Products"; *@
-@*     var isWholesaler = User.IsInRole("Wholesaler"); *@
-@*     var isRetailer = User.IsInRole("Retailer"); *@
-@*     var isAdmin = User.IsInRole("Admin"); *@
-@* } *@
-
-@* <div class="container"> *@
-@*     <div class="row mb-4"> *@
-@*         <div class="col-md-8"> *@
-@*             <h2>@(isWholesaler ? "My Products Catalog" : "Products Catalog")</h2> *@
-@*         </div> *@
-@*         <div class="col-md-4 text-right"> *@
-@*             @if (isWholesaler) *@
-@*             { *@
-@*                 <a asp-action="Create" class="btn btn-primary">Add New Product</a> *@
-@*                 <a asp-action="WholesalerProducts" class="btn btn-info">Manage Inventory</a> *@
-@*             } *@
-@*             @if (isRetailer) *@
-@*             { *@
-@*                 <a asp-action="RetailerInventory" class="btn btn-info">My Inventory</a> *@
-@*             } *@
-@*             @if (isAdmin) *@
-@*             { *@
-@*                 <a asp-action="Create" class="btn btn-primary">Add New Product</a> *@
-@*                 <a asp-action="ManageCategories" class="btn btn-secondary">Manage Categories</a> *@
-@*             } *@
-@*         </div> *@
-@*     </div> *@
-
-@*     @if (Model != null && Model.Any()) *@
-@*     { *@
-@*         <div class="row"> *@
-@*             @foreach (var product in Model) *@
-@*             { *@
-@*                 <div class="col-md-4 mb-4"> *@
-@*                     <div class="card h-100"> *@
-@*                         @if (!string.IsNullOrEmpty(product.ImageURL)) *@
-@*                         { *@
-@*                             <img src="@product.ImageURL" class="card-img-top" alt="@product.Name" style="height: 200px; object-fit: cover;"> *@
-@*                         } *@
-@*                         else *@
-@*                         { *@
-@*                             <div class="bg-light text-center py-5"> *@
-@*                                 <i class="fa fa-image fa-4x text-muted"></i> *@
-@*                             </div> *@
-@*                         } *@
-@*                         <div class="card-body"> *@
-@*                             <h5 class="card-title">@product.Name</h5> *@
-@*                             <p class="card-text">@product.Description</p> *@
-@*                             <div class="d-flex justify-content-between align-items-center"> *@
-@*                                 <span class="badge badge-primary">@product.Category</span> *@
-@*                                 <span class="font-weight-bold text-success">@product.DefaultPrice.ToString("C")</span> *@
-@*                             </div> *@
-
-@*                             @if (isWholesaler && ViewBag.CurrentUserProducts != null && ViewBag.CurrentUserProducts.Contains(product.ProductID)) *@
-@*                             { *@
-@*                                 <p class="card-text mt-2"> *@
-@*                                     <small class="text-muted">Your inventory: @(ViewBag.ProductStocks != null ? ViewBag.ProductStocks[product.ProductID] : 0)</small> *@
-@*                                 </p> *@
-@*                             } *@
-@*                         </div> *@
-@*                         <div class="card-footer bg-white border-top-0"> *@
-@*                             <div class="btn-group btn-block"> *@
-@*                                 <a asp-action="Details" asp-route-id="@product.ProductID" class="btn btn-outline-primary">Details</a> *@
-@*                                 @if ((isWholesaler || isAdmin) && ViewBag.CurrentUserProducts != null && ViewBag.CurrentUserProducts.Contains(product.ProductID)) *@
-@*                                 { *@
-@*                                     <a asp-action="Edit" asp-route-id="@product.ProductID" class="btn btn-outline-secondary">Edit</a> *@
-@*                                 } *@
-@*                                 @if (isRetailer) *@
-@*                                 { *@
-@*                                     <a asp-controller="Transaction" asp-action="AddToCart" asp-route-id="@product.ProductID" class="btn btn-success">Add to Cart</a> *@
-@*                                 } *@
-@*                             </div> *@
-@*                         </div> *@
-@*                     </div> *@
-@*                 </div> *@
-@*             } *@
-@*         </div> *@
-@*     } *@
-@*     else *@
-@*     { *@
-@*         <div class="alert alert-info"> *@
-@*             @if (isWholesaler) *@
-@*             { *@
-@*                 <p>You haven't added any products yet. <a asp-action="Create">Add your first product</a> to get started.</p> *@
-@*             } *@
-@*             else if (isAdmin) *@
-@*             { *@
-@*                 <p>No products are available in the system. <a asp-action="Create">Add your first product</a> to get started.</p> *@
-@*             } *@
-@*             else *@
-@*             { *@
-@*                 <p>No products are available at this time. Please check back later.</p> *@
-@*             } *@
-@*         </div> *@
-@*     } *@
-@* </div> *@
-
-@model IEnumerable<RetailerWholesalerSystem.Models.Product>
+﻿@model IEnumerable<RetailerWholesalerSystem.Models.WholesalerProduct>
 @{
-    ViewData["Title"] = "My Inventory";
-    var isWholesaler = User.IsInRole("Wholesaler");
-    var isRetailer = User.IsInRole("Retailer");
+    ViewData["Title"] = "Products";
 }
 
-<div class="container">
-    <h2>My Inventory</h2>
-
-    @if (isWholesaler || isRetailer)
-    {
-        <div class="table-responsive">
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>Product</th>
-                        <th>Description</th>
-                        <th>Category</th>
-                        <th>Price</th>
-                        <th>Stock</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var product in Model)
-                    {
-                        <tr>
-                            <td>@product.Name</td>
-                            <td>@product.Description</td>
-                            <td>@product.Category</td>
-                            <td>@product.DefaultPrice.ToString("C")</td>
-                            <td>@(isWholesaler ? product.WholesalerProducts.FirstOrDefault()?.AvailableQuantity : product.RetailerProducts.FirstOrDefault()?.StockQuantity)</td>
-                            <td>
-                                <a asp-action="Edit" asp-route-id="@product.ProductID" class="btn btn-sm btn-warning">Edit</a>
-                                <a asp-action="Delete" asp-route-id="@product.ProductID" class="btn btn-sm btn-danger">Delete</a>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>Products</h2>
         </div>
-    }
+        <div class="col-auto">
+            <div class="input-group">
+                <input type="text" id="product-search" class="form-control" placeholder="Search products...">
+                <button class="btn btn-outline-secondary" type="button" id="search-button">
+                    <i class="bi bi-search"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Filters</h5>
+                </div>
+                <div class="card-body">
+                    <h6>Categories</h6>
+                    <div class="mb-3" id="category-filters">
+                        @foreach (var category in ViewBag.Categories)
+                        {
+                            <div class="form-check">
+                                <input class="form-check-input category-filter" type="checkbox" value="@category.CategoryID" id="category-@category.CategoryID">
+                                <label class="form-check-label" for="category-@category.CategoryID">
+                                    @category.Name
+                                </label>
+                            </div>
+                        }
+                    </div>
+
+                    <h6>Wholesalers</h6>
+                    <div class="mb-3" id="wholesaler-filters">
+                        @foreach (var wholesaler in ViewBag.Wholesalers)
+                        {
+                            <div class="form-check">
+                                <input class="form-check-input wholesaler-filter" type="checkbox" value="@wholesaler.Id" id="wholesaler-@wholesaler.Id">
+                                <label class="form-check-label" for="wholesaler-@wholesaler.Id">
+                                    @wholesaler.BusinessName
+                                </label>
+                            </div>
+                        }
+                    </div>
+
+                    <h6>Price Range</h6>
+                    <div class="mb-3">
+                        <div class="row">
+                            <div class="col">
+                                <input type="number" id="min-price" class="form-control" placeholder="Min">
+                            </div>
+                            <div class="col">
+                                <input type="number" id="max-price" class="form-control" placeholder="Max">
+                            </div>
+                        </div>
+                    </div>
+
+                    <button id="apply-filters" class="btn btn-primary w-100">Apply Filters</button>
+                    <button id="clear-filters" class="btn btn-outline-secondary w-100 mt-2">Clear Filters</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-9">
+            <div class="row row-cols-1 row-cols-md-3 g-4" id="product-container">
+                @foreach (var product in Model)
+                {
+                    <div class="col">
+                        <div class="card h-100">
+                            @if (!string.IsNullOrEmpty(product.Product.ImageURL))
+                            {
+                                <img src="@product.Product.ImageURL" class="card-img-top" alt="@product.Product.Name" style="height: 200px; object-fit: cover;">
+                            }
+                            else
+                            {
+                                <div class="bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                                    <i class="bi bi-image text-muted" style="font-size: 2rem;"></i>
+                                </div>
+                            }
+                            <div class="card-body">
+                                <h5 class="card-title">@product.Product.Name</h5>
+                                <p class="card-text text-muted">@product.Product.Category.Name</p>
+                                <p class="card-text">@(product.Product.Description?.Length > 100 ? product.Product.Description.Substring(0, 100) + "..." : product.Product.Description)</p>
+                            </div>
+                            <div class="card-footer">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0 text-primary">@product.Price.ToString("C")</h5>
+                                    <a asp-controller="Product" asp-action="Details" asp-route-id="@product.WholesalerProductID" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-info-circle"></i> Details
+                                    </a>
+                                </div>
+                                <div class="mt-2">
+                                    <small class="text-muted">
+                                        Available: @product.AvailableQuantity | Min Order: @product.MinimumOrderQuantity
+                                    </small>
+                                </div>
+                                <div class="mt-2">
+                                    <small class="text-muted">
+                                        Wholesaler: @product.Wholesaler.BusinessName
+                                    </small>
+                                </div>
+                                <div class="mt-2">
+                                    @if (User.Identity.IsAuthenticated)
+                                    {
+                                        <div class="input-group input-group-sm">
+                                            <input type="number" class="form-control" id="qty-@product.WholesalerProductID"
+                                                   value="@product.MinimumOrderQuantity" min="@product.MinimumOrderQuantity" max="@product.AvailableQuantity">
+                                            <button class="btn btn-primary quick-add-to-cart"
+                                                    data-wholesaler-product-id="@product.WholesalerProductID">
+                                                <i class="bi bi-cart-plus"></i> Add
+                                            </button>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <a asp-controller="Account" asp-action="Login" class="btn btn-sm btn-outline-secondary w-100">
+                                            Log in to purchase
+                                        </a>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
 </div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Quick add to cart functionality
+            $('.quick-add-to-cart').click(function() {
+                var wholesalerProductId = $(this).data('wholesaler-product-id');
+                var quantity = $('#qty-' + wholesalerProductId).val();
+
+                $.ajax({
+                    url: '@Url.Action("AddToCart", "Cart")',
+                    type: 'POST',
+                    data: {
+                        wholesalerProductId: wholesalerProductId,
+                        quantity: quantity,
+                        __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            // Update cart count in navbar
+                            $('#cart-count').text(response.cartCount);
+
+                            // Show success message
+                            toastr.success('Product added to cart successfully!');
+                        } else {
+                            // Show error message
+                            toastr.error(response.message);
+                        }
+                    },
+                    error: function() {
+                        toastr.error('An error occurred while adding to cart.');
+                    }
+                });
+            });
+
+            // Filter functionality would go here
+            // This is just a placeholder - you would need to implement AJAX filtering
+            $('#apply-filters').click(function() {
+                // Implement filtering logic
+                alert('Filter functionality would be implemented with AJAX');
+            });
+
+            $('#clear-filters').click(function() {
+                // Clear all filters
+                $('input[type="checkbox"]').prop('checked', false);
+                $('#min-price').val('');
+                $('#max-price').val('');
+                $('#product-search').val('');
+
+                // Reset to showing all products
+                // This would typically reload the initial product list
+                location.reload();
+            });
+        });
+    </script>
+}

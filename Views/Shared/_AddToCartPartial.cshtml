@@ -1,0 +1,48 @@
+﻿@model int
+@{
+    // Model is the WholesalerProductID
+    var wholesalerProductId = Model;
+}
+
+<div class="add-to-cart-form">
+    <div class="input-group mb-3">
+        <input type="number" class="form-control quantity-input" id="quantity-@wholesalerProductId" value="1" min="1">
+        <button class="btn btn-primary add-to-cart-btn" data-wholesaler-product-id="@wholesalerProductId">
+            <i class="bi bi-cart-plus"></i> Add to Cart
+        </button>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function() {
+        $('.add-to-cart-btn').click(function() {
+            var wholesalerProductId = $(this).data('wholesaler-product-id');
+            var quantity = $('#quantity-' + wholesalerProductId).val();
+
+            $.ajax({
+                url: '@Url.Action("AddToCart", "Cart")',
+                type: 'POST',
+                data: {
+                    wholesalerProductId: wholesalerProductId,
+                    quantity: quantity,
+                    __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        // Update cart count in navbar
+                        $('#cart-count').text(response.cartCount);
+
+                        // Show success message
+                        toastr.success('Product added to cart successfully!');
+                    } else {
+                        // Show error message
+                        toastr.error(response.message);
+                    }
+                },
+                error: function() {
+                    toastr.error('An error occurred while adding to cart.');
+                }
+            });
+        });
+    });
+</script>

@@ -62,6 +62,7 @@ namespace RetailerWholesalerSystem.Models
                 .WithMany(u => u.WholesalerTransactions)
                 .HasForeignKey(t => t.WholesalerID)
                 .OnDelete(DeleteBehavior.Restrict);
+
             // Configure relationship between Order and ApplicationUser (as Retailer)
             modelBuilder.Entity<Order>()
                 .HasOne(o => o.Retailer)
@@ -76,15 +77,70 @@ namespace RetailerWholesalerSystem.Models
                 .HasForeignKey(o => o.WholesalerID)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // Configure CartItem relationships - ADDING THIS IS CRITICAL
+            modelBuilder.Entity<CartItem>()
+                .HasOne(ci => ci.Retailer)
+                .WithMany()
+                .HasForeignKey(ci => ci.RetailerID)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<CartItem>()
+                .HasOne(ci => ci.WholesalerProduct)
+                .WithMany()
+                .HasForeignKey(ci => ci.WholesalerProductID)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            // Configure WholesalerProduct relationships - ALSO IMPORTANT
+            modelBuilder.Entity<WholesalerProduct>()
+                .HasOne(wp => wp.Product)
+                .WithMany(p => p.WholesalerProducts)
+                .HasForeignKey(wp => wp.ProductID)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<WholesalerProduct>()
+                .HasOne(wp => wp.Wholesaler)
+                .WithMany(u => u.WholesalerProducts)
+                .HasForeignKey(wp => wp.WholesalerID)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            // Configure OrderItem relationships
+            modelBuilder.Entity<OrderItem>()
+                .HasOne(oi => oi.WholesalerProduct)
+                .WithMany()
+                .HasForeignKey(oi => oi.WholesalerProductID)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<OrderItem>()
+                .HasOne(oi => oi.Product)
+                .WithMany()
+                .HasForeignKey(oi => oi.ProductID)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            // Fix decimal precision warnings
             modelBuilder.Entity<Product>()
-    .Property(p => p.DefaultPrice)
-    .HasColumnType("decimal(18,2)");
+                .Property(p => p.DefaultPrice)
+                .HasColumnType("decimal(18,2)");
 
             modelBuilder.Entity<RetailerProduct>()
                 .Property(p => p.Price)
                 .HasColumnType("decimal(18,2)");
 
-            // Add similar configurations for other decimal properties
+            modelBuilder.Entity<Transaction>()
+                .Property(t => t.TotalAmount)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<TransactionDetail>()
+                .Property(td => td.Subtotal)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<TransactionDetail>()
+                .Property(td => td.UnitPrice)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<WholesalerProduct>()
+                .Property(wp => wp.Price)
+                .HasColumnType("decimal(18,2)");
+
             // Add indexes on commonly queried fields
             modelBuilder.Entity<Product>().HasIndex(p => p.Name);
             modelBuilder.Entity<Product>().HasIndex(p => p.CategoryID);
@@ -92,7 +148,6 @@ namespace RetailerWholesalerSystem.Models
             modelBuilder.Entity<Transaction>().HasIndex(t => t.RetailerID);
             modelBuilder.Entity<Transaction>().HasIndex(t => t.WholesalerID);
             modelBuilder.Entity<TransactionDetail>().HasIndex(td => td.ProductID);
-
         }
     }
 }

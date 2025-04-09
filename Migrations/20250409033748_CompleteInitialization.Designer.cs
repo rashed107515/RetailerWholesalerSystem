@@ -12,8 +12,8 @@ using RetailerWholesalerSystem.Models;
 namespace RetailerWholesalerSystem.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250312005119_stock")]
-    partial class stock
+    [Migration("20250409033748_CompleteInitialization")]
+    partial class CompleteInitialization
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -238,6 +238,36 @@ namespace RetailerWholesalerSystem.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
+            modelBuilder.Entity("RetailerWholesalerSystem.Models.CartItem", b =>
+                {
+                    b.Property<int>("CartItemID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CartItemID"));
+
+                    b.Property<DateTime>("DateAdded")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RetailerID")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("WholesalerProductID")
+                        .HasColumnType("int");
+
+                    b.HasKey("CartItemID");
+
+                    b.HasIndex("RetailerID");
+
+                    b.HasIndex("WholesalerProductID");
+
+                    b.ToTable("CartItems");
+                });
+
             modelBuilder.Entity("RetailerWholesalerSystem.Models.Category", b =>
                 {
                     b.Property<int>("CategoryID")
@@ -263,6 +293,81 @@ namespace RetailerWholesalerSystem.Migrations
                     b.HasKey("CategoryID");
 
                     b.ToTable("Categories");
+                });
+
+            modelBuilder.Entity("RetailerWholesalerSystem.Models.Order", b =>
+                {
+                    b.Property<int>("OrderID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrderID"));
+
+                    b.Property<DateTime?>("DeliveredDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("OrderDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("RetailerID")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime?>("ShippedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TrackingNumber")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("WholesalerID")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("OrderID");
+
+                    b.HasIndex("RetailerID");
+
+                    b.HasIndex("WholesalerID");
+
+                    b.ToTable("Orders");
+                });
+
+            modelBuilder.Entity("RetailerWholesalerSystem.Models.OrderItem", b =>
+                {
+                    b.Property<int>("OrderItemID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrderItemID"));
+
+                    b.Property<int>("OrderID")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("ProductID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WholesalerProductID")
+                        .HasColumnType("int");
+
+                    b.HasKey("OrderItemID");
+
+                    b.HasIndex("OrderID");
+
+                    b.HasIndex("ProductID");
+
+                    b.HasIndex("WholesalerProductID");
+
+                    b.ToTable("OrderItems");
                 });
 
             modelBuilder.Entity("RetailerWholesalerSystem.Models.Product", b =>
@@ -296,6 +401,8 @@ namespace RetailerWholesalerSystem.Migrations
                     b.HasKey("ProductID");
 
                     b.HasIndex("CategoryID");
+
+                    b.HasIndex("Name");
 
                     b.ToTable("Products");
                 });
@@ -364,6 +471,8 @@ namespace RetailerWholesalerSystem.Migrations
                         .HasColumnType("nvarchar(450)");
 
                     b.HasKey("TransactionID");
+
+                    b.HasIndex("Date");
 
                     b.HasIndex("RetailerID");
 
@@ -488,6 +597,71 @@ namespace RetailerWholesalerSystem.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("RetailerWholesalerSystem.Models.CartItem", b =>
+                {
+                    b.HasOne("RetailerWholesalerSystem.Models.ApplicationUser", "Retailer")
+                        .WithMany()
+                        .HasForeignKey("RetailerID")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("RetailerWholesalerSystem.Models.WholesalerProduct", "WholesalerProduct")
+                        .WithMany()
+                        .HasForeignKey("WholesalerProductID")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Retailer");
+
+                    b.Navigation("WholesalerProduct");
+                });
+
+            modelBuilder.Entity("RetailerWholesalerSystem.Models.Order", b =>
+                {
+                    b.HasOne("RetailerWholesalerSystem.Models.ApplicationUser", "Retailer")
+                        .WithMany("RetailerOrders")
+                        .HasForeignKey("RetailerID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RetailerWholesalerSystem.Models.ApplicationUser", "Wholesaler")
+                        .WithMany("WholesalerOrders")
+                        .HasForeignKey("WholesalerID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Retailer");
+
+                    b.Navigation("Wholesaler");
+                });
+
+            modelBuilder.Entity("RetailerWholesalerSystem.Models.OrderItem", b =>
+                {
+                    b.HasOne("RetailerWholesalerSystem.Models.Order", "Order")
+                        .WithMany("OrderItems")
+                        .HasForeignKey("OrderID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("RetailerWholesalerSystem.Models.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductID")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("RetailerWholesalerSystem.Models.WholesalerProduct", "WholesalerProduct")
+                        .WithMany()
+                        .HasForeignKey("WholesalerProductID")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Order");
+
+                    b.Navigation("Product");
+
+                    b.Navigation("WholesalerProduct");
+                });
+
             modelBuilder.Entity("RetailerWholesalerSystem.Models.Product", b =>
                 {
                     b.HasOne("RetailerWholesalerSystem.Models.Category", "Category")
@@ -561,13 +735,13 @@ namespace RetailerWholesalerSystem.Migrations
                     b.HasOne("RetailerWholesalerSystem.Models.Product", "Product")
                         .WithMany("WholesalerProducts")
                         .HasForeignKey("ProductID")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.HasOne("RetailerWholesalerSystem.Models.ApplicationUser", "Wholesaler")
                         .WithMany("WholesalerProducts")
                         .HasForeignKey("WholesalerID")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.Navigation("Product");
@@ -577,11 +751,20 @@ namespace RetailerWholesalerSystem.Migrations
 
             modelBuilder.Entity("RetailerWholesalerSystem.Models.ApplicationUser", b =>
                 {
+                    b.Navigation("RetailerOrders");
+
                     b.Navigation("RetailerTransactions");
+
+                    b.Navigation("WholesalerOrders");
 
                     b.Navigation("WholesalerProducts");
 
                     b.Navigation("WholesalerTransactions");
+                });
+
+            modelBuilder.Entity("RetailerWholesalerSystem.Models.Order", b =>
+                {
+                    b.Navigation("OrderItems");
                 });
 
             modelBuilder.Entity("RetailerWholesalerSystem.Models.Product", b =>

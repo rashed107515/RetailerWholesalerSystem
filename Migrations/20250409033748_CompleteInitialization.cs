@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace RetailerWholesalerSystem.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class CompleteInitialization : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -55,20 +55,19 @@ namespace RetailerWholesalerSystem.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Products",
+                name: "Categories",
                 columns: table => new
                 {
-                    ProductID = table.Column<int>(type: "int", nullable: false)
+                    CategoryID = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
-                    Category = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    DefaultPrice = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    ImageURL = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    CreatedByUserID = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    IsGlobal = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Products", x => x.ProductID);
+                    table.PrimaryKey("PK_Categories", x => x.CategoryID);
                 });
 
             migrationBuilder.CreateTable(
@@ -178,6 +177,37 @@ namespace RetailerWholesalerSystem.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Orders",
+                columns: table => new
+                {
+                    OrderID = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    OrderDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    RetailerID = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    WholesalerID = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    Status = table.Column<int>(type: "int", nullable: false),
+                    TrackingNumber = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ShippedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    DeliveredDate = table.Column<DateTime>(type: "datetime2", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Orders", x => x.OrderID);
+                    table.ForeignKey(
+                        name: "FK_Orders_AspNetUsers_RetailerID",
+                        column: x => x.RetailerID,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Orders_AspNetUsers_WholesalerID",
+                        column: x => x.WholesalerID,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Transactions",
                 columns: table => new
                 {
@@ -209,28 +239,50 @@ namespace RetailerWholesalerSystem.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "WholesalerProducts",
+                name: "Products",
                 columns: table => new
                 {
-                    WholesalerProductID = table.Column<int>(type: "int", nullable: false)
+                    ProductID = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    ProductID = table.Column<int>(type: "int", nullable: false),
-                    WholesalerID = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Price = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    AvailableQuantity = table.Column<int>(type: "int", nullable: false),
-                    MinimumOrderQuantity = table.Column<int>(type: "int", nullable: false)
+                    Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    CategoryID = table.Column<int>(type: "int", nullable: false),
+                    DefaultPrice = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    ImageURL = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_WholesalerProducts", x => x.WholesalerProductID);
+                    table.PrimaryKey("PK_Products", x => x.ProductID);
                     table.ForeignKey(
-                        name: "FK_WholesalerProducts_AspNetUsers_WholesalerID",
-                        column: x => x.WholesalerID,
+                        name: "FK_Products_Categories_CategoryID",
+                        column: x => x.CategoryID,
+                        principalTable: "Categories",
+                        principalColumn: "CategoryID",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "RetailerProducts",
+                columns: table => new
+                {
+                    RetailerProductID = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    ProductID = table.Column<int>(type: "int", nullable: false),
+                    RetailerID = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    Price = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    StockQuantity = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_RetailerProducts", x => x.RetailerProductID);
+                    table.ForeignKey(
+                        name: "FK_RetailerProducts_AspNetUsers_RetailerID",
+                        column: x => x.RetailerID,
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_WholesalerProducts_Products_ProductID",
+                        name: "FK_RetailerProducts_Products_ProductID",
                         column: x => x.ProductID,
                         principalTable: "Products",
                         principalColumn: "ProductID",
@@ -264,6 +316,92 @@ namespace RetailerWholesalerSystem.Migrations
                         principalTable: "Transactions",
                         principalColumn: "TransactionID",
                         onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "WholesalerProducts",
+                columns: table => new
+                {
+                    WholesalerProductID = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    ProductID = table.Column<int>(type: "int", nullable: false),
+                    WholesalerID = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    Price = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    AvailableQuantity = table.Column<int>(type: "int", nullable: false),
+                    MinimumOrderQuantity = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_WholesalerProducts", x => x.WholesalerProductID);
+                    table.ForeignKey(
+                        name: "FK_WholesalerProducts_AspNetUsers_WholesalerID",
+                        column: x => x.WholesalerID,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_WholesalerProducts_Products_ProductID",
+                        column: x => x.ProductID,
+                        principalTable: "Products",
+                        principalColumn: "ProductID");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "CartItems",
+                columns: table => new
+                {
+                    CartItemID = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    RetailerID = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    WholesalerProductID = table.Column<int>(type: "int", nullable: false),
+                    Quantity = table.Column<int>(type: "int", nullable: false),
+                    DateAdded = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CartItems", x => x.CartItemID);
+                    table.ForeignKey(
+                        name: "FK_CartItems_AspNetUsers_RetailerID",
+                        column: x => x.RetailerID,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_CartItems_WholesalerProducts_WholesalerProductID",
+                        column: x => x.WholesalerProductID,
+                        principalTable: "WholesalerProducts",
+                        principalColumn: "WholesalerProductID");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "OrderItems",
+                columns: table => new
+                {
+                    OrderItemID = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    OrderID = table.Column<int>(type: "int", nullable: false),
+                    ProductID = table.Column<int>(type: "int", nullable: false),
+                    WholesalerProductID = table.Column<int>(type: "int", nullable: false),
+                    Quantity = table.Column<int>(type: "int", nullable: false),
+                    Price = table.Column<decimal>(type: "decimal(18,2)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_OrderItems", x => x.OrderItemID);
+                    table.ForeignKey(
+                        name: "FK_OrderItems_Orders_OrderID",
+                        column: x => x.OrderID,
+                        principalTable: "Orders",
+                        principalColumn: "OrderID",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_OrderItems_Products_ProductID",
+                        column: x => x.ProductID,
+                        principalTable: "Products",
+                        principalColumn: "ProductID");
+                    table.ForeignKey(
+                        name: "FK_OrderItems_WholesalerProducts_WholesalerProductID",
+                        column: x => x.WholesalerProductID,
+                        principalTable: "WholesalerProducts",
+                        principalColumn: "WholesalerProductID");
                 });
 
             migrationBuilder.CreateIndex(
@@ -306,6 +444,61 @@ namespace RetailerWholesalerSystem.Migrations
                 filter: "[NormalizedUserName] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
+                name: "IX_CartItems_RetailerID",
+                table: "CartItems",
+                column: "RetailerID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CartItems_WholesalerProductID",
+                table: "CartItems",
+                column: "WholesalerProductID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_OrderItems_OrderID",
+                table: "OrderItems",
+                column: "OrderID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_OrderItems_ProductID",
+                table: "OrderItems",
+                column: "ProductID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_OrderItems_WholesalerProductID",
+                table: "OrderItems",
+                column: "WholesalerProductID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Orders_RetailerID",
+                table: "Orders",
+                column: "RetailerID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Orders_WholesalerID",
+                table: "Orders",
+                column: "WholesalerID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Products_CategoryID",
+                table: "Products",
+                column: "CategoryID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Products_Name",
+                table: "Products",
+                column: "Name");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RetailerProducts_ProductID",
+                table: "RetailerProducts",
+                column: "ProductID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RetailerProducts_RetailerID",
+                table: "RetailerProducts",
+                column: "RetailerID");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_TransactionDetails_ProductID",
                 table: "TransactionDetails",
                 column: "ProductID");
@@ -314,6 +507,11 @@ namespace RetailerWholesalerSystem.Migrations
                 name: "IX_TransactionDetails_TransactionID",
                 table: "TransactionDetails",
                 column: "TransactionID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Transactions_Date",
+                table: "Transactions",
+                column: "Date");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Transactions_RetailerID",
@@ -355,13 +553,25 @@ namespace RetailerWholesalerSystem.Migrations
                 name: "AspNetUserTokens");
 
             migrationBuilder.DropTable(
+                name: "CartItems");
+
+            migrationBuilder.DropTable(
+                name: "OrderItems");
+
+            migrationBuilder.DropTable(
+                name: "RetailerProducts");
+
+            migrationBuilder.DropTable(
                 name: "TransactionDetails");
 
             migrationBuilder.DropTable(
-                name: "WholesalerProducts");
+                name: "AspNetRoles");
 
             migrationBuilder.DropTable(
-                name: "AspNetRoles");
+                name: "Orders");
+
+            migrationBuilder.DropTable(
+                name: "WholesalerProducts");
 
             migrationBuilder.DropTable(
                 name: "Transactions");
@@ -371,6 +581,9 @@ namespace RetailerWholesalerSystem.Migrations
 
             migrationBuilder.DropTable(
                 name: "AspNetUsers");
+
+            migrationBuilder.DropTable(
+                name: "Categories");
         }
     }
 }

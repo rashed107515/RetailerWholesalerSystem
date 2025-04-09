@@ -282,35 +282,49 @@
             });
             
             // Handle add to cart buttons
-            $('.add-to-cart').click(function () {
-                const productId = $(this).data('product-id');
-                const quantity = $('#quantity-' + productId).val();
-                
-                $.ajax({
-                    url: '@Url.Action("AddToCart", "Cart")',
-                    type: 'POST',
-                    data: {
-                        wholesalerProductId: productId,
-                        quantity: quantity
-                    },
-                    success: function (result) {
-                        if (result.success) {
-                            // Update cart count in the navbar
-                            $('.cart-count').text(result.cartCount);
-                            
-                            // Show success toast
-                            showToast('Success', 'Product added to cart', 'success');
-                        } else {
-                            showToast('Error', result.message, 'error');
-                        }
-                    },
-                    error: function () {
-                        showToast('Error', 'Failed to add product to cart', 'error');
+        // Replace the existing add-to-cart click handler in your BrowseWholesalerProducts.cshtml file
+        // with this improved version
+
+        $('.add-to-cart').click(function () {
+            const productId = $(this).data('product-id');
+            const quantity = $('#quantity-' + productId).val();
+
+            // Get the anti-forgery token
+            const token = $('input:hidden[name="__RequestVerificationToken"]').val();
+
+            $.ajax({
+                url: '@Url.Action("AddToCart", "Cart")',
+                type: 'POST',
+                data: {
+                    wholesalerProductId: productId,
+                    quantity: quantity,
+                    __RequestVerificationToken: token
+                },
+                success: function (result) {
+                    if (result.success) {
+                        // Update cart count in the navbar
+                        $('.cart-count').text(result.cartCount);
+
+                        // Show success toast
+                        showToast('Success', 'Product added to cart', 'success');
+                    } else {
+                        showToast('Error', result.message || 'Failed to add product to cart', 'error');
                     }
-                });
+                },
+                error: function (xhr) {
+                    console.error("Cart error:", xhr);
+                    let errorMessage = 'Failed to add product to cart';
+
+                    // Try to get detailed error if available
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
+                    }
+
+                    showToast('Error', errorMessage, 'error');
+                }
             });
-            
-            // Toast function for notifications
+        });
+                    // Toast function for notifications
             function showToast(title, message, type) {
                 $('.toast-container').remove(); // Remove existing toasts
                 

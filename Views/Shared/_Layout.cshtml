@@ -6,6 +6,8 @@
     <title>@ViewData["Title"] - Retailer Wholesaler System</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" />
+    <!-- Add Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
 </head>
 <body>
     <header>
@@ -24,10 +26,9 @@
                         </li>
                         @if (User.Identity.IsAuthenticated)
                         {
-                        
-                           <li class="nav-item">
-    <a class="nav-link text-dark" asp-area="" asp-controller="Categories" asp-action="Index">Categories</a>
-</li>
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-area="" asp-controller="Categories" asp-action="Index">Categories</a>
+                            </li>
                             <li class="nav-item">
                                 <a class="nav-link text-dark" asp-area="" asp-controller="Product" asp-action="Index">Products</a>
                             </li>
@@ -38,6 +39,15 @@
                             {
                                 <li class="nav-item">
                                     <a class="nav-link text-dark" asp-area="" asp-controller="Comparison" asp-action="Index">Compare Products</a>
+                                </li>
+                                <!-- Cart Icon with Counter -->
+                                <li class="nav-item">
+                                    <a class="nav-link text-dark position-relative" asp-area="" asp-controller="Cart" asp-action="Index">
+                                        <i class="fas fa-shopping-cart"></i>
+                                        <span class="badge badge-pill badge-danger cart-count position-absolute" style="top: 0; right: 0;">
+                                            @(ViewBag.CartItemCount > 0 ? ViewBag.CartItemCount.ToString() : "")
+                                        </span>
+                                    </a>
                                 </li>
                             }
                             <li class="nav-item">
@@ -55,6 +65,9 @@
         </main>
     </div>
 
+    <!-- Toast container for notifications -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3"></div>
+
     <footer class="border-top footer text-muted">
         <div class="container">
             &copy; 2025 - RetailerWholesalerSystem - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
@@ -62,8 +75,43 @@
     </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    @* <script src="~/lib/chart.js/dist/Chart.min.js"></script> *@
     <script src="~/js/site.js" asp-append-version="true"></script>
+
+    <!-- Add global cart functionality script -->
+    <script>
+        // Setup AJAX antiforgery token
+        $(function () {
+            $.ajaxSetup({
+                headers: {
+                    'RequestVerificationToken': $('input:hidden[name="__RequestVerificationToken"]').val()
+                }
+            });
+        });
+
+        // Global toast function for notifications
+        function showToast(title, message, type) {
+            const toastId = 'toast-' + new Date().getTime();
+            const toastHtml = `
+                <div id="${toastId}" class="toast align-items-center text-white bg-${type === 'success' ? 'success' : 'danger'} border-0" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="3000">
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            <strong>${title}:</strong> ${message}
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                </div>
+            `;
+
+            $('.toast-container').append(toastHtml);
+            $(`#${toastId}`).toast('show');
+
+            // Remove toast after it's hidden
+            $(`#${toastId}`).on('hidden.bs.toast', function () {
+                $(this).remove();
+            });
+        }
+    </script>
+
     @RenderSection("Scripts", required: false)
 </body>
 </html>

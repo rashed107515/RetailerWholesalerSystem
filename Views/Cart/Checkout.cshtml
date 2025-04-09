@@ -1,0 +1,297 @@
+﻿@model CheckoutViewModel
+@{
+    ViewData["Title"] = "Checkout";
+}
+
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>Checkout</h2>
+        </div>
+        <div class="col-md-4 text-right">
+            <a asp-controller="Cart" asp-action="Index" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Cart
+            </a>
+        </div>
+    </div>
+
+    @if (!Model.CartItems.Any())
+    {
+        <div class="alert alert-info">
+            <h4>Your cart is empty</h4>
+            <p>Add some products to your cart before proceeding to checkout.</p>
+            <a asp-controller="Product" asp-action="BrowseWholesalerProducts" class="btn btn-primary">
+                <i class="fas fa-shopping-bag"></i> Browse Products
+            </a>
+        </div>
+    }
+    else
+    {
+        <form asp-action="PlaceOrder" method="post" id="checkoutForm">
+            @Html.AntiForgeryToken()
+
+            <div class="row">
+                <!-- Left column: order summary -->
+                <div class="col-md-8">
+                    <div class="card mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">Order Summary</h5>
+                        </div>
+                        <div class="card-body">
+                            @foreach (var group in Model.CartItems.GroupBy(c => c.WholesalerProduct.Wholesaler))
+                            {
+                                <div class="wholesaler-group mb-4">
+                                    <h5>
+                                        <i class="fas fa-store"></i>
+                                        @group.Key.BusinessName
+                                    </h5>
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered">
+                                            <thead class="thead-light">
+                                                <tr>
+                                                    <th>Product</th>
+                                                    <th class="text-center">Price</th>
+                                                    <th class="text-center">Quantity</th>
+                                                    <th class="text-center">Subtotal</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var item in group)
+                                                {
+                                                    <tr>
+                                                        <td>
+                                                            <div class="d-flex align-items-center">
+                                                                @if (!string.IsNullOrEmpty(item.WholesalerProduct.Product.ImageURL))
+                                                                {
+                                                                    <img src="@item.WholesalerProduct.Product.ImageURL" alt="@item.WholesalerProduct.Product.Name"
+                                                                         class="img-thumbnail mr-3" style="width: 60px; height: 60px; object-fit: cover;">
+                                                                }
+                                                                else
+                                                                {
+                                                                    <div class="bg-light text-center mr-3" style="width: 60px; height: 60px;">
+                                                                        <i class="fas fa-image fa-2x text-muted" style="line-height: 60px;"></i>
+                                                                    </div>
+                                                                }
+                                                                <div>
+                                                                    <h6 class="mb-0">@item.WholesalerProduct.Product.Name</h6>
+                                                                    <small class="text-muted">@item.WholesalerProduct.Product.Category.Name</small>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td class="text-center align-middle">@item.WholesalerProduct.Price.ToString("C")</td>
+                                                        <td class="text-center align-middle">@item.Quantity</td>
+                                                        <td class="text-center align-middle">
+                                                            @((item.WholesalerProduct.Price * item.Quantity).ToString("C"))
+                                                        </td>
+                                                    </tr>
+                                                }
+                                                <tr class="bg-light">
+                                                    <td colspan="3" class="text-right font-weight-bold">Wholesaler Subtotal:</td>
+                                                    <td class="text-center font-weight-bold">
+                                                        @group.Sum(i => i.WholesalerProduct.Price * i.Quantity).ToString("C")
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="note-@group.Key.Id">Note for this wholesaler (optional):</label>
+                                        <textarea id="note-@group.Key.Id" name="WholesalerNotes[@group.Key.Id]"
+                                                  class="form-control" rows="2" placeholder="Any special instructions for this wholesaler?"></textarea>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                        <div class="card-footer">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <p class="mb-0">
+                                        <strong>Total Items:</strong> @Model.CartItems.Sum(i => i.Quantity)
+                                    </p>
+                                </div>
+                                <div class="col-md-4 text-right">
+                                    <h5 class="mb-0">
+                                        <strong>Total:</strong> @Model.CartItems.Sum(i => i.WholesalerProduct.Price * i.Quantity).ToString("C")
+                                    </h5>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right column: shipping and payment -->
+                <div class="col-md-4">
+                    <div class="card mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">Shipping Details</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label asp-for="DeliveryAddress">Delivery Address</label>
+                                <textarea asp-for="DeliveryAddress" class="form-control" rows="3" required></textarea>
+                                <span asp-validation-for="DeliveryAddress" class="text-danger"></span>
+                            </div>
+                            <div class="form-group">
+                                <label asp-for="ContactPhone">Contact Phone</label>
+                                <input asp-for="ContactPhone" class="form-control" required />
+                                <span asp-validation-for="ContactPhone" class="text-danger"></span>
+                            </div>
+                            <div class="form-group">
+                                <label asp-for="PreferredDeliveryDate">Preferred Delivery Date</label>
+                                <input asp-for="PreferredDeliveryDate" type="date" class="form-control"
+                                       min="@DateTime.Now.AddDays(1).ToString("yyyy-MM-dd")" required />
+                                <span asp-validation-for="PreferredDeliveryDate" class="text-danger"></span>
+                            </div>
+                            <div class="form-group">
+                                <label asp-for="DeliveryInstructions">Delivery Instructions (Optional)</label>
+                                <textarea asp-for="DeliveryInstructions" class="form-control" rows="2"></textarea>
+                                <span asp-validation-for="DeliveryInstructions" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">Payment Method</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="radio" name="PaymentMethod" id="payment-cod" value="CashOnDelivery" checked>
+                                <label class="form-check-label" for="payment-cod">
+                                    <i class="fas fa-money-bill-wave mr-2"></i> Cash on Delivery
+                                </label>
+                            </div>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="radio" name="PaymentMethod" id="payment-bank" value="BankTransfer">
+                                <label class="form-check-label" for="payment-bank">
+                                    <i class="fas fa-university mr-2"></i> Bank Transfer
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="PaymentMethod" id="payment-credit" value="CreditTerms">
+                                <label class="form-check-label" for="payment-credit">
+                                    <i class="fas fa-credit-card mr-2"></i> Credit Terms
+                                </label>
+                            </div>
+
+                            <div id="bank-transfer-info" class="mt-3 p-3 bg-light rounded d-none">
+                                <h6>Bank Transfer Information</h6>
+                                <p class="mb-1">Please transfer the total amount to:</p>
+                                <p class="mb-1"><strong>Bank:</strong> National Commercial Bank</p>
+                                <p class="mb-1"><strong>Account Name:</strong> Retailer Wholesaler System</p>
+                                <p class="mb-1"><strong>Account Number:</strong> 1234567890</p>
+                                <p class="mb-1"><strong>Reference:</strong> Your Order Number (will be provided)</p>
+                            </div>
+
+                            <div id="credit-terms-info" class="mt-3 p-3 bg-light rounded d-none">
+                                <h6>Credit Terms Information</h6>
+                                <p class="mb-1">Standard payment terms: Net 30 days</p>
+                                <p class="mb-0">Subject to credit approval and existing terms with each wholesaler.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">Order Confirmation</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="terms-check" required>
+                                <label class="form-check-label" for="terms-check">
+                                    I agree to the <a href="#" data-toggle="modal" data-target="#termsModal">terms and conditions</a>
+                                </label>
+                            </div>
+                            <button type="submit" class="btn btn-success btn-lg btn-block" id="place-order-btn">
+                                <i class="fas fa-check-circle"></i> Place Order
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        <!-- Terms and Conditions Modal -->
+        <div class="modal fade" id="termsModal" tabindex="-1" role="dialog" aria-labelledby="termsModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="termsModalLabel">Terms and Conditions</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <h6>1. Order Processing</h6>
+                        <p>
+                            All orders are subject to product availability. If an item is not in stock at the time of order placement,
+                            you will be notified and given the option to wait for the item or cancel that portion of your order.
+                        </p>
+
+                        <h6>2. Delivery</h6>
+                        <p>
+                            While we strive to meet all preferred delivery dates, the actual delivery date may vary based on wholesaler availability,
+                            product availability, and logistics considerations. You will receive a confirmation of the scheduled delivery date.
+                        </p>
+
+                        <h6>3. Payment Terms</h6>
+                        <p>
+                            Payment methods and terms vary by wholesaler. Cash on Delivery requires full payment at the time of delivery.
+                            Bank Transfer requires payment before shipment. Credit Terms are subject to prior approval by each wholesaler.
+                        </p>
+
+                        <h6>4. Returns & Refunds</h6>
+                        <p>
+                            Damaged or defective products must be reported within 24 hours of delivery. Returns must be in original packaging
+                            and condition. Refunds will be processed according to each wholesaler's policies.
+                        </p>
+
+                        <h6>5. Cancellation</h6>
+                        <p>
+                            Orders may be cancelled within 2 hours of placement at no charge. Cancellations after this period may incur fees
+                            or may not be possible if processing has begun.
+                        </p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-primary" data-dismiss="modal">I Understand</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Payment method info toggle
+            $('input[name="PaymentMethod"]').change(function() {
+                // Hide all payment info divs
+                $('#bank-transfer-info, #credit-terms-info').addClass('d-none');
+
+                // Show the relevant one
+                if ($(this).val() === 'BankTransfer') {
+                    $('#bank-transfer-info').removeClass('d-none');
+                } else if ($(this).val() === 'CreditTerms') {
+                    $('#credit-terms-info').removeClass('d-none');
+                }
+            });
+
+            // Form validation
+            $('#checkoutForm').submit(function(e) {
+                if (!$('#terms-check').is(':checked')) {
+                    e.preventDefault();
+                    alert('You must agree to the terms and conditions to place an order.');
+                    return false;
+                }
+
+                // Disable submit button to prevent double submission
+                $('#place-order-btn').prop('disabled', true).html(
+                    '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...'
+                );
+
+                return true;
+            });
+        });
+    </script>
+}

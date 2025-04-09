@@ -1,0 +1,37 @@
+﻿@{
+    ViewData["Title"] = "Order Confirmation";
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card border-success mb-4">
+                <div class="card-header bg-success text-white">
+                    <h2 class="mb-0 text-center">
+                        <i class="fas fa-check-circle"></i> Order Placed Successfully
+                    </h2>
+                </div>
+                <div class="card-body text-center">
+                    <div class="mb-4">
+                        <i class="fas fa-shopping-bag fa-4x text-success"></i>
+                    </div>
+                    <h3>Thank you for your order!</h3>
+                    <p class="lead mb-4">Your order has been received and is being processed.</p>
+
+                    <div class="alert alert-info">
+                        <p class="mb-0">Order confirmation details have been sent to your registered email address.</p>
+                    </div>
+
+                    <div class="d-flex justify-content-center mt-4">
+                        <a asp-controller="Order" asp-action="MyOrders" class="btn btn-outline-primary mr-3">
+                            <i class="fas fa-file-invoice"></i> View My Orders
+                        </a>
+                        <a asp-controller="Product" asp-action="BrowseWholesalerProducts" class="btn btn-success">
+                            <i class="fas fa-shopping-cart"></i> Continue Shopping
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

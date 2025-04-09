@@ -599,13 +599,13 @@ namespace RetailerWholesalerSystem.Migrations
                     b.HasOne("RetailerWholesalerSystem.Models.ApplicationUser", "Retailer")
                         .WithMany()
                         .HasForeignKey("RetailerID")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.HasOne("RetailerWholesalerSystem.Models.WholesalerProduct", "WholesalerProduct")
                         .WithMany()
                         .HasForeignKey("WholesalerProductID")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.Navigation("Retailer");
@@ -643,13 +643,13 @@ namespace RetailerWholesalerSystem.Migrations
                     b.HasOne("RetailerWholesalerSystem.Models.Product", "Product")
                         .WithMany()
                         .HasForeignKey("ProductID")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.HasOne("RetailerWholesalerSystem.Models.WholesalerProduct", "WholesalerProduct")
                         .WithMany()
                         .HasForeignKey("WholesalerProductID")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.Navigation("Order");
@@ -732,13 +732,13 @@ namespace RetailerWholesalerSystem.Migrations
                     b.HasOne("RetailerWholesalerSystem.Models.Product", "Product")
                         .WithMany("WholesalerProducts")
                         .HasForeignKey("ProductID")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.HasOne("RetailerWholesalerSystem.Models.ApplicationUser", "Wholesaler")
                         .WithMany("WholesalerProducts")
                         .HasForeignKey("WholesalerID")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.Navigation("Product");
