@@ -28,6 +28,21 @@ namespace RetailerWholesalerSystem.Models
 
         public DateTime? DeliveredDate { get; set; }
 
+        [Required]
+        public string DeliveryAddress { get; set; }
+
+        [Required]
+        [Phone]
+        public string ContactPhone { get; set; }
+
+        public DateTime? PreferredDeliveryDate { get; set; }
+
+        public string DeliveryInstructions { get; set; }
+
+        public string PaymentMethod { get; set; }
+
+        public string WholesalerNotes { get; set; }
+
         // Navigation properties
         [ForeignKey("RetailerID")]
         public ApplicationUser Retailer { get; set; }
@@ -36,6 +51,5 @@ namespace RetailerWholesalerSystem.Models
         public ApplicationUser Wholesaler { get; set; }
 
         public ICollection<OrderItem> OrderItems { get; set; }
-
     }
 }

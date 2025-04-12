@@ -15,7 +15,7 @@
         </div>
     </div>
 
-    @using (Html.BeginForm("Create", "Transaction", FormMethod.Post, new { id = "createOrderForm" }))
+    @using (Html.BeginForm("ConfirmOrder", "Transaction", FormMethod.Post, new { id = "createOrderForm" }))
     {
         @Html.AntiForgeryToken()
         

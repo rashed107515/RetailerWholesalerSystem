@@ -405,6 +405,155 @@ namespace RetailerWholesalerSystem.Controllers
                 return View("Error");
             }
         }
+
+        // GET: Transaction/ConfirmOrder
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult ConfirmOrder(Transaction transaction, int[] productIds, int[] quantities)
+        {
+            try
+            {
+                // Check if any products were selected
+                if (productIds == null || quantities == null || productIds.Length == 0)
+                {
+                    ModelState.AddModelError("", "Please select at least one product.");
+                    PrepareCreateViewData(transaction.WholesalerID);
+                    return View("Create", transaction);
+                }
+
+                // Validate quantities
+                bool anyProductSelected = false;
+                for (int i = 0; i < quantities.Length; i++)
+                {
+                    if (quantities[i] > 0)
+                    {
+                        anyProductSelected = true;
+                        break;
+                    }
+                }
+
+                if (!anyProductSelected)
+                {
+                    ModelState.AddModelError("", "Please select at least one product with quantity greater than 0.");
+                    PrepareCreateViewData(transaction.WholesalerID);
+                    return View("Create", transaction);
+                }
+
+                // Fetch retailer and wholesaler entities
+                var retailer = db.Users.Find(transaction.RetailerID);
+                var wholesaler = db.Users.Find(transaction.WholesalerID);
+
+                if (retailer == null || wholesaler == null)
+                {
+                    ModelState.AddModelError("", "Invalid retailer or wholesaler information.");
+                    PrepareCreateViewData(transaction.WholesalerID);
+                    return View("Create", transaction);
+                }
+
+                // Set up the transaction for preview
+                transaction.Date = DateTime.Now;
+                transaction.Status = TransactionStatus.Pending;
+                transaction.PaymentMethod = transaction.PaymentMethod ?? "Pending";
+                transaction.Notes = transaction.Notes ?? "Order placed online";
+                transaction.Retailer = retailer;
+                transaction.Wholesaler = wholesaler;
+
+                // Calculate details for preview
+                decimal totalAmount = 0;
+                var detailsList = new List<TransactionDetail>();
+
+                for (int i = 0; i < Math.Min(productIds.Length, quantities.Length); i++)
+                {
+                    if (quantities[i] <= 0) continue;
+
+                    var wholesalerProduct = db.WholesalerProducts
+                        .Include(wp => wp.Product)
+                        .FirstOrDefault(wp => wp.ProductID == productIds[i] &&
+                                               wp.WholesalerID == transaction.WholesalerID);
+
+                    if (wholesalerProduct != null)
+                    {
+                        // Check available quantity
+                        if (quantities[i] > wholesalerProduct.AvailableQuantity)
+                        {
+                            ModelState.AddModelError("", $"Product '{wholesalerProduct.Product.Name}' only has {wholesalerProduct.AvailableQuantity} available.");
+                            PrepareCreateViewData(transaction.WholesalerID);
+                            return View("Create", transaction);
+                        }
+
+                        decimal subtotal = wholesalerProduct.Price * quantities[i];
+
+                        var detail = new TransactionDetail
+                        {
+                            ProductID = productIds[i],
+                            Quantity = quantities[i],
+                            UnitPrice = wholesalerProduct.Price,
+                            Product = wholesalerProduct.Product
+                        };
+
+                        detailsList.Add(detail);
+                        totalAmount += subtotal;
+                    }
+                }
+
+                if (detailsList.Count == 0)
+                {
+                    ModelState.AddModelError("", "No valid products were added to the order.");
+                    PrepareCreateViewData(transaction.WholesalerID);
+                    return View("Create", transaction);
+                }
+
+                transaction.TransactionDetails = detailsList;
+                transaction.TotalAmount = totalAmount;
+
+                // Store the transaction temporarily in TempData for the confirmation step
+                TempData["PendingTransaction"] = transaction;
+                TempData["ProductIds"] = productIds;
+                TempData["Quantities"] = quantities;
+
+                return View(transaction);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error in ConfirmOrder: {ex.Message}");
+                ModelState.AddModelError("", "An error occurred while processing your order. Please try again.");
+                PrepareCreateViewData(transaction.WholesalerID);
+                return View("Create", transaction);
+            }
+        }
+        // POST: Transaction/ProcessOrder
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult ProcessOrder()
+        {
+            try
+            {
+                // Retrieve the pending transaction from TempData
+                var transaction = TempData["PendingTransaction"] as Transaction;
+                var productIds = TempData["ProductIds"] as int[];
+                var quantities = TempData["Quantities"] as int[];
+
+                if (transaction == null || productIds == null || quantities == null)
+                {
+                    return RedirectToAction("SelectWholesaler");
+                }
+
+                // Now process and save the transaction as in your original Create POST action
+                // [Copy the transaction saving logic from your Create POST action]
+
+                // After successfully saving
+                TempData["SuccessMessage"] = "Order created successfully!";
+                return RedirectToAction(nameof(Confirmation), new { id = transaction.TransactionID });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error in ProcessOrder: {ex.Message}");
+                ModelState.AddModelError("", "An error occurred while processing your order. Please try again.");
+                return RedirectToAction("SelectWholesaler");
+            }
+        }
+
+
         public ActionResult Details(int? id)
         {
             if (id == null)

@@ -327,111 +327,126 @@ namespace RetailerWholesalerSystem.Controllers
                     return RedirectToAction(nameof(Index));
                 }
 
-                // Start a database transaction
-                using var transaction = await _db.Database.BeginTransactionAsync();
+                // Create an execution strategy for the transaction
+                var strategy = _db.Database.CreateExecutionStrategy();
 
-                try
+                var orderIds = new List<int>();
+
+                // Execute everything in a retriable transaction
+                await strategy.ExecuteAsync(async () =>
                 {
-                    // Group cart items by wholesaler
-                    var wholesalerGroups = cartItems.GroupBy(ci => ci.WholesalerProduct.WholesalerID);
-                    var orderIds = new List<int>();
+                    // Start a database transaction
+                    using var transaction = await _db.Database.BeginTransactionAsync();
 
-                    foreach (var group in wholesalerGroups)
+                    try
                     {
-                        // Create an order for each wholesaler
-                        var wholesalerId = group.Key;
-                        var orderItems = group.ToList();
+                        // Group cart items by wholesaler
+                        var wholesalerGroups = cartItems.GroupBy(ci => ci.WholesalerProduct.WholesalerID);
 
-                        // Create order
-                        var order = new Order
+                        foreach (var group in wholesalerGroups)
                         {
-                            OrderDate = DateTime.Now,
-                            RetailerID = userId,
-                            WholesalerID = wholesalerId,
-                            Status = OrderStatus.Pending,
-                            // If you want to store these additional fields, you'll need to add them to your Order model
-                            // Or create an OrderDetails table for this extra information
-                        };
+                            // Create an order for each wholesaler
+                            var wholesalerId = group.Key;
+                            var orderItems = group.ToList();
 
-                        // Create order items collection
-                        var newOrderItems = new List<OrderItem>();
-
-                        foreach (var item in orderItems)
-                        {
-                            // Check if product is still available in requested quantity
-                            var wholesalerProduct = await _db.WholesalerProducts
-                                .FindAsync(item.WholesalerProductID);
-
-                            if (wholesalerProduct.AvailableQuantity < item.Quantity)
+                            var order = new Order
                             {
-                                ModelState.AddModelError("", $"Product '{item.WholesalerProduct.Product.Name}' is no longer available in the requested quantity. Only {wholesalerProduct.AvailableQuantity} units available.");
-
-                                // Reload cart items
-                                model.CartItems = cartItems;
-                                return View("Checkout", model);
-                            }
-
-                            // Create order item
-                            var orderItem = new OrderItem
-                            {
-                                ProductID = item.WholesalerProduct.ProductID,
-                                WholesalerProductID = item.WholesalerProductID,
-                                Quantity = item.Quantity,
-                                Price = item.WholesalerProduct.Price
+                                OrderDate = DateTime.Now,
+                                RetailerID = userId,
+                                WholesalerID = wholesalerId,
+                                Status = OrderStatus.Pending,
+                                TrackingNumber = "Pending", // Add this line
+                                DeliveryAddress = model.DeliveryAddress,
+                                ContactPhone = model.ContactPhone,
+                                PreferredDeliveryDate = model.PreferredDeliveryDate,
+                                DeliveryInstructions = model.DeliveryInstructions,
+                                PaymentMethod = model.PaymentMethod
                             };
 
-                            newOrderItems.Add(orderItem);
+                            // Add wholesaler-specific notes if available
+                            string wholesalerIdStr = wholesalerId.ToString();
+                            if (model.WholesalerNotes != null && model.WholesalerNotes.ContainsKey(wholesalerIdStr))
+                            {
+                                order.WholesalerNotes = model.WholesalerNotes[wholesalerIdStr];
+                            }
 
-                            // Update available quantity
-                            wholesalerProduct.AvailableQuantity -= item.Quantity;
+                            // Add order to database and save to get OrderID
+                            _db.Orders.Add(order);
+                            await _db.SaveChangesAsync();
+
+                            // Create order items after getting OrderID
+                            foreach (var item in orderItems)
+                            {
+                                var wholesalerProduct = await _db.WholesalerProducts
+                                    .Include(wp => wp.Product)
+                                    .FirstOrDefaultAsync(wp => wp.WholesalerProductID == item.WholesalerProductID);
+                                if (wholesalerProduct.AvailableQuantity < item.Quantity)
+                                {
+                                    throw new InvalidOperationException($"Product '{item.WholesalerProduct.Product.Name}' is no longer available in the requested quantity. Only {wholesalerProduct.AvailableQuantity} units available.");
+                                }
+
+                                // Create order item with OrderID
+                                var orderItem = new OrderItem
+                                {
+                                    OrderID = order.OrderID,
+                                    ProductID = item.WholesalerProduct.ProductID,
+                                    WholesalerProductID = item.WholesalerProductID,
+                                    Quantity = item.Quantity,
+                                    Price = item.WholesalerProduct.Price
+                                };
+
+                                // Add order item to database
+                                _db.OrderItems.Add(orderItem);
+
+                                // Update available quantity
+                                wholesalerProduct.AvailableQuantity -= item.Quantity;
+                            }
+
+                            // Save order items and quantity updates
+                            await _db.SaveChangesAsync();                            // Store order ID for confirmation
+                            orderIds.Add(order.OrderID);
                         }
 
-                        // Assign order items
-                        order.OrderItems = newOrderItems;
-
-                        // Add order to database
-                        _db.Orders.Add(order);
+                        // Remove all cart items
+                        _db.CartItems.RemoveRange(cartItems);
                         await _db.SaveChangesAsync();
 
-                        // Store order ID for confirmation
-                        orderIds.Add(order.OrderID);
+                        // Commit transaction
+                        await transaction.CommitAsync();
                     }
+                    catch (Exception)
+                    {
+                        // Roll back transaction on error
+                        await transaction.RollbackAsync();
+                        throw; // Re-throw to be caught by the outer try-catch
+                    }
+                });
 
-                    // Remove all cart items
-                    _db.CartItems.RemoveRange(cartItems);
-                    await _db.SaveChangesAsync();
+                // Store order IDs in TempData for confirmation page
+                TempData["OrderIds"] = string.Join(",", orderIds);
+                TempData["SuccessMessage"] = "Your order has been placed successfully!";
 
-                    // Commit transaction
-                    await transaction.CommitAsync();
-
-                    // Store order IDs in TempData for confirmation page
-                    TempData["OrderIds"] = string.Join(",", orderIds);
-                    TempData["SuccessMessage"] = "Your order has been placed successfully!";
-
-                    // Redirect to confirmation page
-                    return RedirectToAction("OrderConfirmation");
-                }
-                catch (Exception ex)
-                {
-                    // Roll back transaction on error
-                    await transaction.RollbackAsync();
-
-                    // Log the error
-                    // _logger.LogError(ex, "Error placing order"); // Uncomment if you have logging configured
-
-                    ModelState.AddModelError("", $"An error occurred while processing your order: {ex.Message}");
-
-                    // Reload cart items
-                    model.CartItems = cartItems;
-                    return View("Checkout", model);
-                }
+                // Redirect to confirmation page
+                return RedirectToAction("OrderConfirmation");
             }
             catch (Exception ex)
             {
                 // Log the error
-                // _logger.LogError(ex, "Error accessing cart data"); // Uncomment if you have logging configured
+                System.Diagnostics.Debug.WriteLine($"Exception in PlaceOrder: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
 
-                ModelState.AddModelError("", "An error occurred while accessing your cart data. Please try again.");
+                ModelState.AddModelError("", $"An error occurred while processing your order: {ex.Message}");
+
+                // Reload cart items
+                model.CartItems = await _db.CartItems
+                    .Include(ci => ci.WholesalerProduct)
+                        .ThenInclude(wp => wp.Product)
+                            .ThenInclude(p => p.Category)
+                    .Include(ci => ci.WholesalerProduct)
+                        .ThenInclude(wp => wp.Wholesaler)
+                    .Where(ci => ci.RetailerID == userId)
+                    .ToListAsync();
+
                 return View("Checkout", model);
             }
         }

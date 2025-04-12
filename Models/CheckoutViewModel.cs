@@ -30,12 +30,12 @@ namespace RetailerWholesalerSystem.Models
         public string PaymentMethod { get; set; }
 
         // For storing wholesaler-specific notes
-        public Dictionary<int, string> WholesalerNotes { get; set; }
+        public Dictionary<string, string> WholesalerNotes { get; set; }
 
         public CheckoutViewModel()
         {
             CartItems = new List<CartItem>();
-            WholesalerNotes = new Dictionary<int, string>();
+            WholesalerNotes = new Dictionary<string, string>();
             // Set default preferred delivery date to tomorrow
             PreferredDeliveryDate = DateTime.Now.AddDays(1);
         }

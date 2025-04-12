@@ -22,7 +22,7 @@
     else
     {
         <div class="mb-3">
-            <form asp-action="Checkout" method="post" id="checkout-form">
+            <form asp-action="Checkout" method="get" id="checkout-form">
                 @Html.AntiForgeryToken()
                 <button type="submit" class="btn btn-success">
                     <i class="bi bi-cart-check"></i> Checkout (@Model.CartGroups.Count order(s), Total: @Model.TotalAmount.ToString("C"))
