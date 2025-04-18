@@ -176,5 +176,37 @@ namespace RetailerWholesalerSystem.Controllers
             TempData["SuccessMessage"] = "Your order has been cancelled.";
             return RedirectToAction(nameof(MyOrders));
         }
+
+        // Add this method to your OrderController
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateOrderStatus(int orderId, OrderStatus newStatus)
+        {
+            string userId = _userManager.GetUserId(User);
+            var user = await _db.Users.FindAsync(userId);
+
+            var order = await _db.Orders
+                .Include(o => o.OrderItems)
+                .FirstOrDefaultAsync(o => o.OrderID == orderId && o.WholesalerID == userId);
+
+            if (order == null)
+            {
+                return NotFound();
+            }
+
+            // Update order status
+            order.Status = newStatus;
+
+            // If the order is being marked as "Shipped" or "Delivered"
+            if (newStatus == OrderStatus.Shipped || newStatus == OrderStatus.Delivered)
+            {
+                // Order items should already be in retailer's inventory from the initial order
+                // But if you want to handle fulfillment separately, you could add inventory here
+            }
+
+            await _db.SaveChangesAsync();
+            return RedirectToAction("WholesalerOrders");
+        }
     }
 }

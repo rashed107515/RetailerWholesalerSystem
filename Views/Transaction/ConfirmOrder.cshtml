@@ -69,16 +69,33 @@
             <div class="row">
                 <div class="col-md-12">
                     <div class="form-group">
-                        @using (Html.BeginForm("ProcessOrder", "Transaction", FormMethod.Post))
+                        @using (Html.BeginForm("ConfirmOrder", "Transaction", FormMethod.Post))
                         {
                             @Html.AntiForgeryToken()
+                            @Html.HiddenFor(m => m.WholesalerID)
+                            @Html.HiddenFor(m => m.PaymentMethod)
+                            @Html.HiddenFor(m => m.Notes)
+
+                            <!-- Add hidden fields for all product IDs and quantities -->
+                            @if (ViewBag.ProductIds != null)
+                            {
+                                for (int i = 0; i < ViewBag.ProductIds.Length; i++)
+                                {
+                                    <input type="hidden" name="productIds" value="@ViewBag.ProductIds[i]" />
+                                    <input type="hidden" name="quantities" value="@ViewBag.Quantities[i]" />
+                                }
+                            }
+
+                            <!-- This hidden field indicates this is a confirmation submission -->
+                            <input type="hidden" name="confirm" value="true" />
+
                             <button type="submit" class="btn btn-success btn-lg">
                                 <i class="fa fa-check"></i> Confirm Order
                             </button>
+                            <a href="@Url.Action("Create", new { id = Model.WholesalerID })" class="btn btn-default">
+                                <i class="fa fa-arrow-left"></i> Back to Edit Order
+                            </a>
                         }
-                        <a href="@Url.Action("Create", new { id = Model.WholesalerID })" class="btn btn-default">
-                            <i class="fa fa-arrow-left"></i> Back to Edit Order
-                        </a>
                     </div>
                 </div>
             </div>

@@ -559,36 +559,6 @@ namespace RetailerWholesalerSystem.Controllers
         }
 
 
-        // GET: Products/BrowseForRetailer
-        //[Authorize]
-        //public ActionResult BrowseForRetailer()
-        //{
-        //    string userId = _userManager.GetUserId(User);
-        //    var user = _db.Users.Find(userId);
-
-        //    if (user.UserType != UserType.Retailer)
-        //    {
-        //        return RedirectToAction("Index");
-        //    }
-
-        //    // Get all available wholesaler products
-        //    var wholesalerProducts = _db.WholesalerProducts
-        //        .Include(wp => wp.Product)
-        //        .Include(wp => wp.Wholesaler)
-        //        .Where(wp => wp.AvailableQuantity > 0)
-        //        .ToList();
-
-        //    // Get the current user's products for comparison
-        //    var currentUserProducts = _db.RetailerProducts
-        //        .Where(rp => rp.RetailerID == userId)
-        //        .Select(rp => rp.ProductID)
-        //        .ToHashSet();
-
-        //    ViewBag.CurrentUserProducts = currentUserProducts;
-
-        //    return View(wholesalerProducts);
-        //}
-        // GET: Products/DeleteWholesalerProduct/5
         [Authorize]
         public ActionResult DeleteWholesalerProduct(int? id)
         {
@@ -708,6 +678,29 @@ namespace RetailerWholesalerSystem.Controllers
 
                 return View(products);
             }
+        }
+
+
+        // Add to ProductController
+        [Authorize]
+        public ActionResult RetailerInventory()
+        {
+            string userId = _userManager.GetUserId(User);
+            var user = _db.Users.Find(userId);
+
+            if (user.UserType != UserType.Retailer)
+            {
+                return Unauthorized();
+            }
+
+            // Get retailer's products with included related data
+            var retailerProducts = _db.RetailerProducts
+                .Include(rp => rp.Product)
+                .ThenInclude(p => p.Category)
+                .Where(rp => rp.RetailerID == userId)
+                .ToList();
+
+            return View(retailerProducts);
         }
 
         // GET: Products/AddToRetailer/5

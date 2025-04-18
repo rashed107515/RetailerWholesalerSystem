@@ -232,11 +232,6 @@ namespace RetailerWholesalerSystem.Controllers
             return Json(new { success = true });
         }
 
-        // Add these methods to your CartController.cs file
-
-        // Add these methods to your CartController.cs file
-
-        // GET: Cart/Checkout
         [HttpGet]
         public async Task<IActionResult> Checkout()
         {
@@ -355,7 +350,7 @@ namespace RetailerWholesalerSystem.Controllers
                                 RetailerID = userId,
                                 WholesalerID = wholesalerId,
                                 Status = OrderStatus.Pending,
-                                TrackingNumber = "Pending", // Add this line
+                                TrackingNumber = "Pending",
                                 DeliveryAddress = model.DeliveryAddress,
                                 ContactPhone = model.ContactPhone,
                                 PreferredDeliveryDate = model.PreferredDeliveryDate,
@@ -380,6 +375,7 @@ namespace RetailerWholesalerSystem.Controllers
                                 var wholesalerProduct = await _db.WholesalerProducts
                                     .Include(wp => wp.Product)
                                     .FirstOrDefaultAsync(wp => wp.WholesalerProductID == item.WholesalerProductID);
+
                                 if (wholesalerProduct.AvailableQuantity < item.Quantity)
                                 {
                                     throw new InvalidOperationException($"Product '{item.WholesalerProduct.Product.Name}' is no longer available in the requested quantity. Only {wholesalerProduct.AvailableQuantity} units available.");
@@ -398,12 +394,41 @@ namespace RetailerWholesalerSystem.Controllers
                                 // Add order item to database
                                 _db.OrderItems.Add(orderItem);
 
-                                // Update available quantity
+                                // Update available quantity for wholesaler
                                 wholesalerProduct.AvailableQuantity -= item.Quantity;
+
+                                // Add to retailer's inventory automatically
+                                var existingRetailerProduct = await _db.RetailerProducts
+                                    .FirstOrDefaultAsync(rp => rp.RetailerID == userId &&
+                                                              rp.ProductID == item.WholesalerProduct.ProductID);
+
+                                if (existingRetailerProduct != null)
+                                {
+                                    // Update existing inventory
+                                    existingRetailerProduct.StockQuantity += item.Quantity;
+                                    // Optionally recalculate price average or keep existing price
+                                }
+                                else
+                                {
+                                    // Add new product to retailer's inventory with default markup
+                                    decimal suggestedRetailPrice = item.WholesalerProduct.Price * 1.2m; // 20% markup
+
+                                    var retailerProduct = new RetailerProduct
+                                    {
+                                        RetailerID = userId,
+                                        ProductID = item.WholesalerProduct.ProductID,
+                                        Price = suggestedRetailPrice,
+                                        StockQuantity = item.Quantity
+                                    };
+
+                                    _db.RetailerProducts.Add(retailerProduct);
+                                }
                             }
 
                             // Save order items and quantity updates
-                            await _db.SaveChangesAsync();                            // Store order ID for confirmation
+                            await _db.SaveChangesAsync();
+
+                            // Store order ID for confirmation
                             orderIds.Add(order.OrderID);
                         }
 
@@ -424,7 +449,7 @@ namespace RetailerWholesalerSystem.Controllers
 
                 // Store order IDs in TempData for confirmation page
                 TempData["OrderIds"] = string.Join(",", orderIds);
-                TempData["SuccessMessage"] = "Your order has been placed successfully!";
+                TempData["SuccessMessage"] = "Your order has been placed successfully! Products have been added to your inventory.";
 
                 // Redirect to confirmation page
                 return RedirectToAction("OrderConfirmation");
@@ -451,18 +476,10 @@ namespace RetailerWholesalerSystem.Controllers
             }
         }
 
-        // GET: Cart/OrderConfirmation
-        public IActionResult OrderConfirmation()
-        {
-            // Display order confirmation page
-            // Order IDs are available in TempData["OrderIds"] if needed
-            return View();
-        }
-
-        // POST: Cart/Checkout
+        // POST: Cart/PlaceOrder
         //[HttpPost]
         //[ValidateAntiForgeryToken]
-        //public async Task<IActionResult> Checkout()
+        //public async Task<IActionResult> PlaceOrder(CheckoutViewModel model)
         //{
         //    string userId = _userManager.GetUserId(User);
         //    var user = await _db.Users.FindAsync(userId);
@@ -472,75 +489,368 @@ namespace RetailerWholesalerSystem.Controllers
         //        return RedirectToAction("Index", "Home");
         //    }
 
-        //    // Get all cart items grouped by wholesaler
-        //    var cartItems = await _db.CartItems
-        //        .Include(ci => ci.WholesalerProduct)
-        //            .ThenInclude(wp => wp.Product)
-        //        .Where(ci => ci.RetailerID == userId)
-        //        .ToListAsync();
-
-        //    if (!cartItems.Any())
+        //    if (!ModelState.IsValid)
         //    {
-        //        return RedirectToAction("Index");
+        //        // Reload cart items if model validation fails
+        //        model.CartItems = await _db.CartItems
+        //            .Include(ci => ci.WholesalerProduct)
+        //                .ThenInclude(wp => wp.Product)
+        //                    .ThenInclude(p => p.Category)
+        //            .Include(ci => ci.WholesalerProduct)
+        //                .ThenInclude(wp => wp.Wholesaler)
+        //            .Where(ci => ci.RetailerID == userId)
+        //            .ToListAsync();
+
+        //        return View("Checkout", model);
         //    }
 
-        //    // Group by wholesaler and create separate orders for each
-        //    var wholesalerGroups = cartItems
-        //        .GroupBy(ci => ci.WholesalerProduct.WholesalerID)
-        //        .ToList();
-
-        //    foreach (var group in wholesalerGroups)
+        //    try
         //    {
-        //        // Create new order
-        //        var order = new Order
+        //        // Get cart items
+        //        var cartItems = await _db.CartItems
+        //            .Include(ci => ci.WholesalerProduct)
+        //                .ThenInclude(wp => wp.Product)
+        //            .Include(ci => ci.WholesalerProduct)
+        //                .ThenInclude(wp => wp.Wholesaler)
+        //            .Where(ci => ci.RetailerID == userId)
+        //            .ToListAsync();
+
+        //        if (!cartItems.Any())
         //        {
-        //            OrderDate = DateTime.Now,
-        //            RetailerID = userId,
-        //            WholesalerID = group.Key,
-        //            Status = OrderStatus.Pending,
-        //            OrderItems = new List<OrderItem>()
-        //        };
-
-        //        // Add order items
-        //        foreach (var cartItem in group)
-        //        {
-        //            // Check if product is still available in requested quantity
-        //            var wholesalerProduct = await _db.WholesalerProducts
-        //                .FindAsync(cartItem.WholesalerProductID);
-
-        //            if (wholesalerProduct.AvailableQuantity < cartItem.Quantity)
-        //            {
-        //                // If not available, show error and return to cart
-        //                TempData["ErrorMessage"] = $"Product '{cartItem.WholesalerProduct.Product.Name}' is no longer available in the requested quantity.";
-        //                return RedirectToAction("Index");
-        //            }
-
-        //            // Add order item
-        //            order.OrderItems.Add(new OrderItem
-        //            {
-        //                ProductID = cartItem.WholesalerProduct.ProductID,
-        //                WholesalerProductID = cartItem.WholesalerProductID,
-        //                Quantity = cartItem.Quantity,
-        //                Price = cartItem.WholesalerProduct.Price
-        //            });
-
-        //            // Update available quantity
-        //            wholesalerProduct.AvailableQuantity -= cartItem.Quantity;
+        //            TempData["InfoMessage"] = "Your cart is empty.";
+        //            return RedirectToAction(nameof(Index));
         //        }
 
-        //        // Add order to database
-        //        _db.Orders.Add(order);
+        //        // Create an execution strategy for the transaction
+        //        var strategy = _db.Database.CreateExecutionStrategy();
+
+        //        var orderIds = new List<int>();
+
+        //        // Execute everything in a retriable transaction
+        //        await strategy.ExecuteAsync(async () =>
+        //        {
+        //            // Start a database transaction
+        //            using var transaction = await _db.Database.BeginTransactionAsync();
+
+        //            try
+        //            {
+        //                // Group cart items by wholesaler
+        //                var wholesalerGroups = cartItems.GroupBy(ci => ci.WholesalerProduct.WholesalerID);
+
+        //                foreach (var group in wholesalerGroups)
+        //                {
+        //                    // Create an order for each wholesaler
+        //                    var wholesalerId = group.Key;
+        //                    var orderItems = group.ToList();
+
+        //                    var order = new Order
+        //                    {
+        //                        OrderDate = DateTime.Now,
+        //                        RetailerID = userId,
+        //                        WholesalerID = wholesalerId,
+        //                        Status = OrderStatus.Pending,
+        //                        TrackingNumber = "Pending",
+        //                        DeliveryAddress = model.DeliveryAddress,
+        //                        ContactPhone = model.ContactPhone,
+        //                        PreferredDeliveryDate = model.PreferredDeliveryDate,
+        //                        DeliveryInstructions = model.DeliveryInstructions,
+        //                        PaymentMethod = model.PaymentMethod
+        //                    };
+
+        //                    // Add wholesaler-specific notes if available
+        //                    string wholesalerIdStr = wholesalerId.ToString();
+        //                    if (model.WholesalerNotes != null && model.WholesalerNotes.ContainsKey(wholesalerIdStr))
+        //                    {
+        //                        order.WholesalerNotes = model.WholesalerNotes[wholesalerIdStr];
+        //                    }
+
+        //                    // Add order to database and save to get OrderID
+        //                    _db.Orders.Add(order);
+        //                    await _db.SaveChangesAsync();
+
+        //                    // Create order items after getting OrderID
+        //                    foreach (var item in orderItems)
+        //                    {
+        //                        var wholesalerProduct = await _db.WholesalerProducts
+        //                            .Include(wp => wp.Product)
+        //                            .FirstOrDefaultAsync(wp => wp.WholesalerProductID == item.WholesalerProductID);
+
+        //                        if (wholesalerProduct.AvailableQuantity < item.Quantity)
+        //                        {
+        //                            throw new InvalidOperationException($"Product '{item.WholesalerProduct.Product.Name}' is no longer available in the requested quantity. Only {wholesalerProduct.AvailableQuantity} units available.");
+        //                        }
+
+        //                        // Create order item with OrderID
+        //                        var orderItem = new OrderItem
+        //                        {
+        //                            OrderID = order.OrderID,
+        //                            ProductID = item.WholesalerProduct.ProductID,
+        //                            WholesalerProductID = item.WholesalerProductID,
+        //                            Quantity = item.Quantity,
+        //                            Price = item.WholesalerProduct.Price
+        //                        };
+
+        //                        // Add order item to database
+        //                        _db.OrderItems.Add(orderItem);
+
+        //                        // Update available quantity for wholesaler
+        //                        wholesalerProduct.AvailableQuantity -= item.Quantity;
+
+        //                        // Add to retailer's inventory automatically
+        //                        var existingRetailerProduct = await _db.RetailerProducts
+        //                            .FirstOrDefaultAsync(rp => rp.RetailerID == userId &&
+        //                                                      rp.ProductID == item.WholesalerProduct.ProductID);
+
+        //                        if (existingRetailerProduct != null)
+        //                        {
+        //                            // Update existing inventory
+        //                            existingRetailerProduct.StockQuantity += item.Quantity;
+        //                            // Optionally recalculate price average or keep existing price
+        //                        }
+        //                        else
+        //                        {
+        //                            // Add new product to retailer's inventory with default markup
+        //                            decimal suggestedRetailPrice = item.WholesalerProduct.Price * 1.2m; // 20% markup
+
+        //                            var retailerProduct = new RetailerProduct
+        //                            {
+        //                                RetailerID = userId,
+        //                                ProductID = item.WholesalerProduct.ProductID,
+        //                                Price = suggestedRetailPrice,
+        //                                StockQuantity = item.Quantity
+        //                            };
+
+        //                            _db.RetailerProducts.Add(retailerProduct);
+        //                        }
+        //                    }
+
+        //                    // Save order items and quantity updates
+        //                    await _db.SaveChangesAsync();
+
+        //                    // Store order ID for confirmation
+        //                    orderIds.Add(order.OrderID);
+        //                }
+
+        //                // Remove all cart items
+        //                _db.CartItems.RemoveRange(cartItems);
+        //                await _db.SaveChangesAsync();
+
+        //                // Commit transaction
+        //                await transaction.CommitAsync();
+        //            }
+        //            catch (Exception)
+        //            {
+        //                // Roll back transaction on error
+        //                await transaction.RollbackAsync();
+        //                throw; // Re-throw to be caught by the outer try-catch
+        //            }
+        //        });
+
+        //        // Store order IDs in TempData for confirmation page
+        //        TempData["OrderIds"] = string.Join(",", orderIds);
+        //        TempData["SuccessMessage"] = "Your order has been placed successfully! Products have been added to your inventory.";
+
+        //        // Redirect to confirmation page
+        //        return RedirectToAction("OrderConfirmation");
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        // Log the error
+        //        System.Diagnostics.Debug.WriteLine($"Exception in PlaceOrder: {ex.Message}");
+        //        System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+
+        //        ModelState.AddModelError("", $"An error occurred while processing your order: {ex.Message}");
+
+        //        // Reload cart items
+        //        model.CartItems = await _db.CartItems
+        //            .Include(ci => ci.WholesalerProduct)
+        //                .ThenInclude(wp => wp.Product)
+        //                    .ThenInclude(p => p.Category)
+        //            .Include(ci => ci.WholesalerProduct)
+        //                .ThenInclude(wp => wp.Wholesaler)
+        //            .Where(ci => ci.RetailerID == userId)
+        //            .ToListAsync();
+
+        //        return View("Checkout", model);
+        //    }
+        //}
+
+        //// POST: Cart/PlaceOrder
+        //[HttpPost]
+        //[ValidateAntiForgeryToken]
+        //public async Task<IActionResult> PlaceOrder(CheckoutViewModel model)
+        //{
+        //    string userId = _userManager.GetUserId(User);
+        //    var user = await _db.Users.FindAsync(userId);
+
+        //    if (user.UserType != UserType.Retailer)
+        //    {
+        //        return RedirectToAction("Index", "Home");
         //    }
 
-        //    // Remove all cart items
-        //    _db.CartItems.RemoveRange(cartItems);
+        //    if (!ModelState.IsValid)
+        //    {
+        //        // Reload cart items if model validation fails
+        //        model.CartItems = await _db.CartItems
+        //            .Include(ci => ci.WholesalerProduct)
+        //                .ThenInclude(wp => wp.Product)
+        //                    .ThenInclude(p => p.Category)
+        //            .Include(ci => ci.WholesalerProduct)
+        //                .ThenInclude(wp => wp.Wholesaler)
+        //            .Where(ci => ci.RetailerID == userId)
+        //            .ToListAsync();
 
-        //    // Save all changes
-        //    await _db.SaveChangesAsync();
+        //        return View("Checkout", model);
+        //    }
 
-        //    // Redirect to orders page with success message
-        //    TempData["SuccessMessage"] = "Your order has been placed successfully.";
-        //    return RedirectToAction("MyOrders", "Order");
+        //    try
+        //    {
+        //        // Get cart items
+        //        var cartItems = await _db.CartItems
+        //            .Include(ci => ci.WholesalerProduct)
+        //                .ThenInclude(wp => wp.Product)
+        //            .Include(ci => ci.WholesalerProduct)
+        //                .ThenInclude(wp => wp.Wholesaler)
+        //            .Where(ci => ci.RetailerID == userId)
+        //            .ToListAsync();
+
+        //        if (!cartItems.Any())
+        //        {
+        //            TempData["InfoMessage"] = "Your cart is empty.";
+        //            return RedirectToAction(nameof(Index));
+        //        }
+
+        //        // Create an execution strategy for the transaction
+        //        var strategy = _db.Database.CreateExecutionStrategy();
+
+        //        var orderIds = new List<int>();
+
+        //        // Execute everything in a retriable transaction
+        //        await strategy.ExecuteAsync(async () =>
+        //        {
+        //            // Start a database transaction
+        //            using var transaction = await _db.Database.BeginTransactionAsync();
+
+        //            try
+        //            {
+        //                // Group cart items by wholesaler
+        //                var wholesalerGroups = cartItems.GroupBy(ci => ci.WholesalerProduct.WholesalerID);
+
+        //                foreach (var group in wholesalerGroups)
+        //                {
+        //                    // Create an order for each wholesaler
+        //                    var wholesalerId = group.Key;
+        //                    var orderItems = group.ToList();
+
+        //                    var order = new Order
+        //                    {
+        //                        OrderDate = DateTime.Now,
+        //                        RetailerID = userId,
+        //                        WholesalerID = wholesalerId,
+        //                        Status = OrderStatus.Pending,
+        //                        TrackingNumber = "Pending", // Add this line
+        //                        DeliveryAddress = model.DeliveryAddress,
+        //                        ContactPhone = model.ContactPhone,
+        //                        PreferredDeliveryDate = model.PreferredDeliveryDate,
+        //                        DeliveryInstructions = model.DeliveryInstructions,
+        //                        PaymentMethod = model.PaymentMethod
+        //                    };
+
+        //                    // Add wholesaler-specific notes if available
+        //                    string wholesalerIdStr = wholesalerId.ToString();
+        //                    if (model.WholesalerNotes != null && model.WholesalerNotes.ContainsKey(wholesalerIdStr))
+        //                    {
+        //                        order.WholesalerNotes = model.WholesalerNotes[wholesalerIdStr];
+        //                    }
+
+        //                    // Add order to database and save to get OrderID
+        //                    _db.Orders.Add(order);
+        //                    await _db.SaveChangesAsync();
+
+        //                    // Create order items after getting OrderID
+        //                    foreach (var item in orderItems)
+        //                    {
+        //                        var wholesalerProduct = await _db.WholesalerProducts
+        //                            .Include(wp => wp.Product)
+        //                            .FirstOrDefaultAsync(wp => wp.WholesalerProductID == item.WholesalerProductID);
+        //                        if (wholesalerProduct.AvailableQuantity < item.Quantity)
+        //                        {
+        //                            throw new InvalidOperationException($"Product '{item.WholesalerProduct.Product.Name}' is no longer available in the requested quantity. Only {wholesalerProduct.AvailableQuantity} units available.");
+        //                        }
+
+        //                        // Create order item with OrderID
+        //                        var orderItem = new OrderItem
+        //                        {
+        //                            OrderID = order.OrderID,
+        //                            ProductID = item.WholesalerProduct.ProductID,
+        //                            WholesalerProductID = item.WholesalerProductID,
+        //                            Quantity = item.Quantity,
+        //                            Price = item.WholesalerProduct.Price
+        //                        };
+
+        //                        // Add order item to database
+        //                        _db.OrderItems.Add(orderItem);
+
+        //                        // Update available quantity
+        //                        wholesalerProduct.AvailableQuantity -= item.Quantity;
+        //                    }
+
+        //                    // Save order items and quantity updates
+        //                    await _db.SaveChangesAsync();                            // Store order ID for confirmation
+        //                    orderIds.Add(order.OrderID);
+        //                }
+
+        //                // Remove all cart items
+        //                _db.CartItems.RemoveRange(cartItems);
+        //                await _db.SaveChangesAsync();
+
+        //                // Commit transaction
+        //                await transaction.CommitAsync();
+        //            }
+        //            catch (Exception)
+        //            {
+        //                // Roll back transaction on error
+        //                await transaction.RollbackAsync();
+        //                throw; // Re-throw to be caught by the outer try-catch
+        //            }
+        //        });
+
+        //        // Store order IDs in TempData for confirmation page
+        //        TempData["OrderIds"] = string.Join(",", orderIds);
+        //        TempData["SuccessMessage"] = "Your order has been placed successfully!";
+
+        //        // Redirect to confirmation page
+        //        return RedirectToAction("OrderConfirmation");
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        // Log the error
+        //        System.Diagnostics.Debug.WriteLine($"Exception in PlaceOrder: {ex.Message}");
+        //        System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+
+        //        ModelState.AddModelError("", $"An error occurred while processing your order: {ex.Message}");
+
+        //        // Reload cart items
+        //        model.CartItems = await _db.CartItems
+        //            .Include(ci => ci.WholesalerProduct)
+        //                .ThenInclude(wp => wp.Product)
+        //                    .ThenInclude(p => p.Category)
+        //            .Include(ci => ci.WholesalerProduct)
+        //                .ThenInclude(wp => wp.Wholesaler)
+        //            .Where(ci => ci.RetailerID == userId)
+        //            .ToListAsync();
+
+        //        return View("Checkout", model);
+        //    }
         //}
+
+        // GET: Cart/OrderConfirmation
+        public IActionResult OrderConfirmation()
+        {
+            // Display order confirmation page
+            // Order IDs are available in TempData["OrderIds"] if needed
+            return View();
+        }
+
     }
 }
