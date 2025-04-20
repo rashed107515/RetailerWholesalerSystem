@@ -38,7 +38,7 @@
                             @if (User.IsInRole("Retailer"))
                             {
                                 <li class="nav-item">
-                                    <a class="nav-link text-dark" asp-area="" asp-controller="Comparison" asp-action="Index">Compare Products</a>
+                                    @* <a class="nav-link text-dark" asp-area="" asp-controller="Comparison" asp-action="Index">Compare Products</a> *@
                                 </li>
                                 <!-- Cart Icon with Counter -->
                                 <li class="nav-item">
@@ -51,7 +51,7 @@
                                 </li>
                             }
                             <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-controller="Report" asp-action="Index">Reports</a>
+                                @* <a class="nav-link text-dark" asp-area="" asp-controller="Report" asp-action="Index">Reports</a> *@
                             </li>
                         }
                     </ul>

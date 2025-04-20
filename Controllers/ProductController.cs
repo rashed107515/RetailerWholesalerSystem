@@ -88,20 +88,40 @@ namespace RetailerWholesalerSystem.Controllers
             return View(wholesalerProducts);
         }
         // GET: Products/Details/5
+        //public ActionResult Details(int? id)
+        //{
+        //    if (id == null)
+        //    {
+        //        return BadRequest();
+        //    }
+        //    Product product = _db.Products.Find(id);
+        //    if (product == null)
+        //    {
+        //        return NotFound();
+        //    }
+        //    return View(product);
+        //}
         public ActionResult Details(int? id)
         {
             if (id == null)
             {
                 return BadRequest();
             }
-            Product product = _db.Products.Find(id);
-            if (product == null)
+
+            // Find the WholesalerProduct instead of just Product
+            var wholesalerProduct = _db.WholesalerProducts
+                .Include(wp => wp.Product)
+                    .ThenInclude(p => p.Category)
+                .Include(wp => wp.Wholesaler)
+                .FirstOrDefault(wp => wp.ProductID == id);
+
+            if (wholesalerProduct == null)
             {
                 return NotFound();
             }
-            return View(product);
-        }
 
+            return View(wholesalerProduct);
+        }
 
         [Authorize]
         public ActionResult Create()
