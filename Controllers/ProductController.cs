@@ -802,42 +802,57 @@ namespace RetailerWholesalerSystem.Controllers
 
             RetailerProduct retailerProduct = _db.RetailerProducts
                 .Include(rp => rp.Product)
+                .ThenInclude(p => p.Category)
                 .FirstOrDefault(rp => rp.RetailerProductID == id && rp.RetailerID == userId);
 
             if (retailerProduct == null)
             {
                 return NotFound();
             }
-
+            ViewData["Title"] = "Edit Inventory Item";
             return View(retailerProduct);
         }
 
-        // POST: Products/EditRetailerProduct/5
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize]
-        public ActionResult EditRetailerProduct([Bind(include: "RetailerProductID,ProductID,Price,StockQuantity")] RetailerProduct retailerProduct)
+        public ActionResult EditRetailerProduct(int RetailerProductID, decimal Price, int StockQuantity)
         {
             string userId = _userManager.GetUserId(User);
             var user = _db.Users.Find(userId);
-
             if (user.UserType != UserType.Retailer)
             {
                 return Unauthorized();
             }
 
-            if (ModelState.IsValid)
+            // Find the existing product
+            var existingProduct = _db.RetailerProducts
+                .FirstOrDefault(rp => rp.RetailerProductID == RetailerProductID && rp.RetailerID == userId);
+
+            if (existingProduct == null)
             {
-                retailerProduct.RetailerID = userId;
-                _db.Entry(retailerProduct).State = EntityState.Modified;
-                _db.SaveChanges();
-                return RedirectToAction("Index");
+                return NotFound();
             }
 
-            return View(retailerProduct);
-        }
+            if (ModelState.IsValid)
+            {
+                // Update only the fields that should be modified
+                existingProduct.Price = Price;
+                existingProduct.StockQuantity = StockQuantity;
 
-        // GET: Products/DeleteRetailerProduct/5
+                _db.SaveChanges();
+                return RedirectToAction("RetailerInventory");
+            }
+
+            // If validation fails, reload the complete entity
+            var completeRetailerProduct = _db.RetailerProducts
+                .Include(rp => rp.Product)
+                .ThenInclude(p => p.Category)
+                .FirstOrDefault(rp => rp.RetailerProductID == RetailerProductID && rp.RetailerID == userId);
+
+            ViewData["Title"] = "Edit Inventory Item";
+            return View(completeRetailerProduct);
+        }        // GET: Products/DeleteRetailerProduct/5
         [Authorize]
         public ActionResult DeleteRetailerProduct(int? id)
         {
